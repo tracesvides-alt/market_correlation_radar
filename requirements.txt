@@ -1,0 +1,8 @@
+streamlit
+yfinance
+pandas
+matplotlib
+seaborn
+pytest
+requests
+lxml
