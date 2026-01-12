@@ -312,14 +312,12 @@ def main():
     if 'period' not in st.session_state:
         st.session_state['period'] = "1y"
 
-    # --- Sidebar: Configuration ---
-    with st.sidebar:
-        st.header("設定 (Settings)")
-        
+    # --- Configuration (Moved to Main Area for Mobile Visibility) ---
+    with st.expander("⚙️ 設定 (Settings) - 銘柄・期間の変更", expanded=True):
         st.markdown("""
         **銘柄の指定について**
         - リストから**選択**するか、直接キーボードで**入力**して追加できます。
-        - 自由に入れ替え可能ですが、**最大10銘柄**の上限があります。
+        - **最大10銘柄**まで選択可能です。
         """)
         
         # Callback to save settings when changed
