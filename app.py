@@ -348,13 +348,37 @@ def main():
         tickers_input = st.multiselect(
             "対象銘柄 (Tickers)",
             options=options,
-            # default=current_selection, # Removed to fix warning: value is handled by session_state key
             key="tickers",
-            max_selections=10,
-            on_change=update_settings
+            max_selections=10
+            # Removed on_change=update_settings (was no-op)
         )
         
         st.caption("※「---」で始まる項目は分類用ヘッダーです。選択しても計算には含まれません。")
+        
+        # --- Custom Ticker Input ---
+        def add_custom_ticker():
+            new_ticker = st.session_state.new_ticker_input.strip().upper()
+            if new_ticker:
+                # Use a fresh list copy to ensure Streamlit detects the state change
+                current = list(st.session_state['tickers'])
+                
+                if new_ticker not in current:
+                    if len(current) < 10:
+                        # Append and assign NEW list
+                        current.append(new_ticker)
+                        st.session_state['tickers'] = current
+                    else:
+                        st.warning("最大10銘柄までです。何かを削除してください。")
+            
+            # Clear input
+            st.session_state.new_ticker_input = ""
+
+        st.text_input(
+            "➕ リストにない銘柄を追加 (例: MARA, COIN)",
+            key="new_ticker_input",
+            on_change=add_custom_ticker,
+            placeholder="ティッカーを入力してEnter"
+        )
         
         # New Period Options Mapping
         period_options = {
@@ -379,7 +403,7 @@ def main():
             on_change=update_settings
         )
         
-        st.caption("Common Tickers examples:\n- `USDJPY=X` (USD/JPY)\n- `^TNX` (US 10Y Yield)\n- `SPY` (S&P 500)\n- `BTC-USD` (Bitcoin)")
+        st.caption("Common Tickers examples:\n- `USDJPY=X` (USD/JPY)\n- `^TNX` (US 10Y Yield)\n- `QQQ` (NASDAQ100)\n- `BTC-USD` (Bitcoin)")
 
     if tickers_input:
         with st.spinner('Fetching data...'):
