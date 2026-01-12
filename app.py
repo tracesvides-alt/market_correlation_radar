@@ -3,37 +3,9 @@ import yfinance as yf
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import json
-import os
 import requests
 
-# --- Helper Functions for Persistence ---
-SETTINGS_FILE = "settings.json"
 
-def load_settings():
-    default_settings = {
-        "tickers": "USDJPY=X, ^TNX, GLD, QQQ, SMH, BTC-USD, XLP, XLV",
-        "period": "1y" 
-    }
-    if not os.path.exists(SETTINGS_FILE):
-        return default_settings
-    
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return default_settings
-
-def save_settings(tickers, period):
-    try:
-        settings = {
-            "tickers": tickers,
-            "period": period # Save the key string directly (e.g., '1mo')
-        }
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        print(f"Failed to save settings: {e}")
 
 # --- Constants ---
 STATIC_MENU_ITEMS = [
@@ -332,19 +304,13 @@ def main():
     """)
     
     # Load Settings (Only once per session)
-    if 'settings_loaded' not in st.session_state:
-        settings = load_settings()
-        # Ensure tickers are list for multiselect
-        saved_tickers_str = settings.get("tickers", "")
-        if isinstance(saved_tickers_str, str) and saved_tickers_str.strip():
-            st.session_state['tickers'] = [t.strip() for t in saved_tickers_str.split(',') if t.strip()]
-        else:
-            # Fallback to defaults if empty
-            default_str = "USDJPY=X, ^TNX, GLD, QQQ, SMH, BTC-USD, XLP, XLV"
-            st.session_state['tickers'] = [t.strip() for t in default_str.split(',')]
+    # Initialize Session State (Per-user temporary settings)
+    if 'tickers' not in st.session_state:
+        # Default tickers
+        st.session_state['tickers'] = ["USDJPY=X", "^TNX", "GLD", "QQQ", "SMH", "BTC-USD", "XLP", "XLV"]
             
-        st.session_state['period'] = settings.get("period", "1y")
-        st.session_state['settings_loaded'] = True
+    if 'period' not in st.session_state:
+        st.session_state['period'] = "1y"
 
     # --- Sidebar: Configuration ---
     with st.sidebar:
@@ -357,11 +323,9 @@ def main():
         """)
         
         # Callback to save settings when changed
+        # Callback to save settings when changed (Removed for Web Version)
         def update_settings():
-            # Filter out headers before saving
-            valid_tickers = [t for t in st.session_state['tickers'] if not t.startswith('---')]
-            tickers_str = ", ".join(valid_tickers)
-            save_settings(tickers_str, st.session_state['period'])
+            pass # No-op as we handle state in memory only
 
         # 1. Fetch Trending Tickers
         trending_tickers = get_dynamic_trending_tickers()
@@ -386,7 +350,7 @@ def main():
         tickers_input = st.multiselect(
             "対象銘柄 (Tickers)",
             options=options,
-            default=current_selection,
+            # default=current_selection, # Removed to fix warning: value is handled by session_state key
             key="tickers",
             max_selections=10,
             on_change=update_settings
