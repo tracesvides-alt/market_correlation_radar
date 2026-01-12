@@ -395,37 +395,54 @@ def main():
                 returns, corr_matrix, cumulative_returns = calculate_stats(df_prices)
 
                 # --- Visualization ---
-                col1, col2 = st.columns([1, 1])
+                # --- Visualization ---
+                # Removed columns for better mobile visibility (Vertical Stack)
+                
+                # --- Visualization ---
+                # Fixed Size Charts using Matplotlib
+                
+                # 1. Heatmap (Fixed Size)
+                st.subheader("Correlation Matrix (Heatmap)")
+                st.caption("日次変化率（%）に基づく相関係数 (-1.0 to 1.0)")
+                
+                if corr_matrix is not None:
+                    fig_corr, ax_corr = plt.subplots(figsize=(10, 8)) # Fixed pixel size ratio
+                    sns.heatmap(
+                        corr_matrix, 
+                        annot=True, 
+                        fmt=".2f", 
+                        cmap='coolwarm', 
+                        vmin=-1, 
+                        vmax=1, 
+                        center=0,
+                        ax=ax_corr,
+                        square=True,
+                        linewidths=.5
+                    )
+                    ax_corr.set_xticklabels(ax_corr.get_xticklabels(), rotation=45, ha='right')
+                    ax_corr.set_yticklabels(ax_corr.get_yticklabels(), rotation=0)
+                    st.pyplot(fig_corr, use_container_width=False) # Important: False keeps fixed size
 
-                with col1:
-                    st.subheader("Correlation Matrix (Heatmap)")
-                    st.caption("日次変化率（%）に基づく相関係数 (-1.0 to 1.0)")
-                    
-                    if corr_matrix is not None:
-                        fig_corr, ax_corr = plt.subplots(figsize=(10, 8))
-                        sns.heatmap(
-                            corr_matrix, 
-                            annot=True, 
-                            fmt=".2f", 
-                            cmap='coolwarm', 
-                            vmin=-1, 
-                            vmax=1, 
-                            center=0,
-                            ax=ax_corr,
-                            square=True,
-                            linewidths=.5
-                        )
-                        # Use axes methods instead of plt. global state
-                        ax_corr.set_xticklabels(ax_corr.get_xticklabels(), rotation=45, ha='right')
-                        ax_corr.set_yticklabels(ax_corr.get_yticklabels(), rotation=0)
-                        st.pyplot(fig_corr, use_container_width=True)
+                st.markdown("---") 
 
-                with col2:
-                    st.subheader("Relative Performance")
-                    st.caption("期間初日を 0% とした累積リターン")
+                # 2. Performance Chart (Also Fixed Size to match Heatmap)
+                st.subheader("Relative Performance")
+                st.caption("期間初日を 0% とした累積リターン")
+                
+                if cumulative_returns is not None:
+                    # Create a fixed-size matplotlib figure instead of interactive st.line_chart
+                    fig_perf, ax_perf = plt.subplots(figsize=(10, 5)) # Wide aspect ratio
                     
-                    if cumulative_returns is not None:
-                        st.line_chart(cumulative_returns * 100)
+                    # Plot logic
+                    for column in cumulative_returns.columns:
+                        ax_perf.plot(cumulative_returns.index, cumulative_returns[column] * 100, label=column)
+                    
+                    ax_perf.set_ylabel("Return (%)")
+                    ax_perf.grid(True, linestyle='--', alpha=0.6)
+                    ax_perf.legend(loc='upper left', bbox_to_anchor=(1, 1)) # Legend outside
+                    
+                    plt.tight_layout() # Prevent cutoff
+                    st.pyplot(fig_perf, use_container_width=False) # Fixed size, no resizing logic
 
                 # --- AI Analyst Insights ---
                 if corr_matrix is not None:
