@@ -6,3 +6,4 @@ seaborn
 pytest
 requests
 lxml
+plotly
