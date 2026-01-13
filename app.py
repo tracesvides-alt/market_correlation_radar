@@ -870,7 +870,7 @@ def get_momentum_candidates(mode="hybrid"):
             # print(f"Source fetch failed {url}: {e}")
             return None
     
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(fetch_source, url): url for url in sources}
         for future in concurrent.futures.as_completed(futures):
             df = future.result()
