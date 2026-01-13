@@ -11,6 +11,14 @@ from datetime import datetime, date
 import plotly.express as px
 import re
 
+# Page Config (Must be first Streamlit command)
+st.set_page_config(
+    page_title="Market Correlation Radar",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # --- Risk Management Helpers ---
 def get_ticker_news(ticker, company_name=None):
     """
@@ -1026,12 +1034,11 @@ def calculate_momentum_metrics(tickers):
 def main():
     st.set_page_config(page_title="Market Analyst AI", layout="wide")
     
-    # Hide Streamlit standard UI elements
+    # Hide Streamlit standard UI elements (Footer only)
+    # NOTE: Do NOT hide 'header' or '#MainMenu' as this hides the mobile hamburger menu!
     hide_st_style = """
             <style>
-            #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            header {visibility: hidden;}
             .stDeployButton {display:none;}
             </style>
             """
