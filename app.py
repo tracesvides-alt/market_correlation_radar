@@ -828,12 +828,13 @@ def get_ticker_metadata(ticker):
     except:
         return ticker, '🌊 Market Mover'
 
+import concurrent.futures
+
 @st.cache_data(ttl=900) 
 def get_momentum_candidates(mode="hybrid"):
     """
     Builds a 'Momentum Universe' candidates list.
-    Performance Optimization: This function NOW ONLY aggregates symbols.
-    Validation (Price > 2, Vol > 200k) is deferred to the batch download step to avoid double-fetching.
+    Performance Optimization: Parallelized scraping.
     Returns: List of unique ticker strings.
     """
     
@@ -855,17 +856,26 @@ def get_momentum_candidates(mode="hybrid"):
     for t in STATIC_MOMENTUM_WATCHLIST:
         all_candidates.add(t)
 
-    # Scrape Dynamic Movers
-    print("Scraping Dynamic Sources...")
-    for url in sources:
+    # Scrape Dynamic Movers (Parallel)
+    # print("Scraping Dynamic Sources...")
+    
+    def fetch_source(url):
         try:
             response = requests.get(url, headers=headers, timeout=5)
             response.raise_for_status()
-            
             dfs = pd.read_html(StringIO(response.text))
             if dfs:
-                df = dfs[0]
-                # Yahoo usually has 'Symbol' and 'Name'
+                return dfs[0]
+        except Exception as e:
+            # print(f"Source fetch failed {url}: {e}")
+            return None
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(fetch_source, url): url for url in sources}
+        for future in concurrent.futures.as_completed(futures):
+            df = future.result()
+            if df is not None:
+                 # Yahoo usually has 'Symbol' and 'Name'
                 if 'Symbol' in df.columns:
                     # Take top 15
                     top_df = df.head(15)
@@ -876,17 +886,146 @@ def get_momentum_candidates(mode="hybrid"):
                         # Capture Name if available
                         if 'Name' in row and isinstance(row['Name'], str):
                             dynamic_names[sym] = row['Name']
-                            
-        except Exception as e:
-            print(f"Source fetch failed {url}: {e}")
-            continue
-            
+
     # Persist scraped names to Session State (for Name Metadata)
     if 'dynamic_names' not in st.session_state:
         st.session_state['dynamic_names'] = {}
     st.session_state['dynamic_names'].update(dynamic_names)
 
     return list(all_candidates)
+
+@st.cache_data(ttl=300, show_spinner=False)
+def calculate_momentum_metrics(tickers):
+    """
+    Calculates detailed metrics for the given tickers.
+    Optimized: Handles Validation (Price/Vol) AND Metrics in one pass.
+    Cached: 5 minutes TTL to avoid re-downloading on every interaction.
+    """
+    if not tickers:
+        return None, None
+
+    # Download 1y data to calculate long-term MA and 1y return
+    try:
+        # Fetching for ALL candidates in one go
+        # Group by ticker is safer for multi-ticker
+        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=True)
+    except Exception as e:
+        st.error(f"Data Fetch Error: {e}")
+        return None, None
+
+    stats_list = []
+    history_dict = {}
+
+    for t in tickers:
+        try:
+            # Handle df structure
+            t_data = pd.DataFrame()
+            if isinstance(df.columns, pd.MultiIndex):
+                if t in df.columns.levels[0]:
+                    t_data = df[t]
+                elif t in df.columns:
+                     t_data = df[t]
+            else:
+                 t_data = df
+
+            if t_data.empty: continue
+            if 'Close' not in t_data.columns: continue
+
+            t_data = t_data.dropna()
+            if t_data.empty: continue
+            
+            # --- 1. Validation Filter (Integrated) ---
+            # Check most recent data point
+            current_price = t_data['Close'].iloc[-1]
+            current_vol = t_data['Volume'].iloc[-1]
+            
+            # For Static List: We skipping filter (Assume they are valid)
+            if t not in STATIC_MOMENTUM_WATCHLIST:
+                # For Dynamic: Strict Penny Filter
+                if current_price < 2.0 or current_vol < 200000:
+                    continue
+
+            # --- 2. Calculations ---
+            
+            # Returns
+            def get_ret(days):
+                if len(t_data) < days: return 0.0
+                return (current_price - t_data['Close'].iloc[-days]) / t_data['Close'].iloc[-days] * 100
+
+            metrics = {}
+            metrics['Ticker'] = t
+            metrics['Price'] = current_price
+            metrics['1d'] = get_ret(2)
+            metrics['5d'] = get_ret(5)
+            metrics['1mo'] = get_ret(21)
+            metrics['3mo'] = get_ret(63)
+            metrics['6mo'] = get_ret(126)
+            
+            # YTD
+            current_year = t_data.index[-1].year
+            ytd_data = t_data[t_data.index.year == current_year]
+            if not ytd_data.empty:
+                metrics['YTD'] = (current_price - ytd_data['Close'].iloc[0]) / ytd_data['Close'].iloc[0] * 100
+            else:
+                metrics['YTD'] = 0.0
+
+            if len(t_data) >= 252:
+                metrics['1y'] = get_ret(252)
+            else:
+                metrics['1y'] = (current_price - t_data['Close'].iloc[0]) / t_data['Close'].iloc[0] * 100
+            
+            # RVOL
+            if len(t_data) > 21:
+                avg_vol_20 = t_data['Volume'].iloc[-21:-1].mean()
+                if pd.isna(avg_vol_20) or avg_vol_20 == 0:
+                    rvol = 0
+                else:
+                    rvol = current_vol / avg_vol_20
+            else:
+                rvol = 0
+            metrics['RVOL'] = rvol
+            
+            # Technicals
+            if len(t_data) >= 50:
+                sma50 = t_data['Close'].rolling(window=50).mean().iloc[-1]
+                metrics['Above_SMA50'] = current_price > sma50
+            else:
+                metrics['Above_SMA50'] = False
+            
+            rsi_series = calculate_rsi(t_data['Close'], 14)
+            metrics['RSI'] = rsi_series.iloc[-1] if not rsi_series.empty else 50
+            
+            # Signals
+            signals = []
+            if metrics['RVOL'] > 2.0: signals.append('⚡')
+            if metrics['Above_SMA50'] and metrics['3mo'] > 0: signals.append('🐂')
+            
+            # 🛒 Dip Buy: Uptrend (Above SMA50) but Short-term cool (RSI < 45)
+            if metrics['Above_SMA50'] and metrics['RSI'] < 45: signals.append('🛒')
+
+            # 🐻 Bear Trend: Downtrend (Below SMA50) & Negative Mom
+            if not metrics['Above_SMA50'] and metrics['3mo'] < 0: signals.append('🐻')
+
+            if metrics['RSI'] > 70: signals.append('🔥')
+            if metrics['RSI'] < 30: signals.append('🧊')
+            metrics['Signal'] = "".join(signals)
+            
+            stats_list.append(metrics)
+            
+            # Save history
+            norm_hist = (t_data['Close'] / t_data['Close'].iloc[0]) * 100
+            history_dict[t] = norm_hist
+
+        except Exception as e:
+            # print(f"Error calc {t}: {e}")
+            continue
+            
+    if not stats_list:
+        return None, None
+        
+    df_metrics = pd.DataFrame(stats_list)
+    cols = ['Ticker', 'Signal', 'Price', '1d', '5d', '1mo', '3mo', '6mo', 'YTD', '1y', 'RVOL', 'RSI']
+    df_metrics = df_metrics[cols]
 
 def calculate_rsi(series, period=14):
     delta = series.diff()
