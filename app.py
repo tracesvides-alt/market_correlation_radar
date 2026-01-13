@@ -16,7 +16,12 @@ st.set_page_config(
     page_title="Market Correlation Radar",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "# Market Correlation Radar\nPowered by AI Analyst"
+    }
 )
 
 # --- Risk Management Helpers ---
@@ -1171,14 +1176,18 @@ def calculate_momentum_metrics(tickers):
 
 # --- Main App ---
 def main():
-    st.set_page_config(page_title="Market Analyst AI", layout="wide")
+    # st.set_page_config is now called globally at line 15
     
-    # Hide Streamlit standard UI elements (Footer only)
+    # Hide Streamlit standard UI elements (Footer, Deploy, Decoration)
     # NOTE: Do NOT hide 'header' or '#MainMenu' as this hides the mobile hamburger menu!
     hide_st_style = """
             <style>
             footer {visibility: hidden;}
             .stDeployButton {display:none;}
+            [data-testid="stAppDeployButton"] {display:none;}
+            [data-testid="stDecoration"] {display:none;}
+            [data-testid="stStatusWidget"] {display:none;}
+            [data-testid="stToolbar"] {visibility: hidden;}
             </style>
             """
     st.markdown(hide_st_style, unsafe_allow_html=True)
