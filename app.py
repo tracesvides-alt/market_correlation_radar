@@ -1184,7 +1184,9 @@ def main():
     hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
+            footer {display: none !important;}
+            [data-testid="stFooter"] {display: none !important;}
+            div[class^='viewerBadge'] {display: none !important;}
             .stDeployButton {display:none;}
             [data-testid="stAppDeployButton"] {display:none;}
             [data-testid="stStatusWidget"] {display:none;}
