@@ -1180,6 +1180,7 @@ def main():
     
     # Hide Streamlit standard UI elements
     # NOTE: Use #MainMenu to hide the "Three Dots" but keep the Header for the Sidebar Burger!
+    # [data-testid="stHeaderActionElements"] targets the Share/Star/Git buttons on Cloud.
     hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -1187,6 +1188,7 @@ def main():
             .stDeployButton {display:none;}
             [data-testid="stAppDeployButton"] {display:none;}
             [data-testid="stStatusWidget"] {display:none;}
+            [data-testid="stHeaderActionElements"] {display: none !important;}
             </style>
             """
     st.markdown(hide_st_style, unsafe_allow_html=True)
