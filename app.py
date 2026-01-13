@@ -1178,21 +1178,39 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-    # Hide Streamlit standard UI elements
-    # NOTE: Use #MainMenu to hide the "Three Dots" but keep the Header for the Sidebar Burger!
-    # [data-testid="stHeaderActionElements"] targets the Share/Star/Git buttons on Cloud.
+    # --- Hide Streamlit Style (Hamburger Menu Friendly Version) ---
     hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {display: none !important;}
-            [data-testid="stFooter"] {display: none !important;}
-            div[class^='viewerBadge'] {display: none !important;}
-            .stDeployButton {display:none;}
-            [data-testid="stAppDeployButton"] {display:none;}
-            [data-testid="stStatusWidget"] {display:none;}
-            [data-testid="stHeaderActionElements"] {display: none !important;}
-            </style>
-            """
+        <style>
+        /* 1. フッター（下の Made with Streamlit）を完全に消す */
+        footer {visibility: hidden !important;}
+        [data-testid="stFooter"] {display: none !important;}
+        
+        /* 2. ヘッダーの「バー（背景色や装飾）」だけを透明にして見えなくする */
+        /* ※header全体を消すとボタンも消えるため、背景透明化で対応 */
+        /* [data-testid="stHeader"] {
+            background-color: rgba(0,0,0,0) !important;
+            border-bottom: none !important;
+        } */
+        [data-testid="stDecoration"] {
+            display: none !important; /* 上部の虹色の線を消す */
+        }
+
+        /* 3. 右上の「...」メニューとデプロイボタンを消す */
+        /* 左上のハンバーガー（サイドバー開閉）は残ります */
+        #MainMenu {visibility: hidden !important;}
+        .stDeployButton {display:none !important;}
+        [data-testid="stAppDeployButton"] {display:none !important;}
+        [data-testid="stHeaderActionElements"] {display: none !important;}
+        [data-testid="stStatusWidget"] {display:none !important;}
+
+        /* 4. 余白調整 */
+        /* ヘッダーの背景が消えた分、コンテンツを少し上に詰める */
+        .block-container {
+            padding-top: 2rem !important; 
+            padding-bottom: 0rem !important;
+        }
+        </style>
+    """
     st.markdown(hide_st_style, unsafe_allow_html=True)
 
     # --- Sidebar: Global Navigation ---
