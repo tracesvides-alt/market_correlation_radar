@@ -1053,7 +1053,7 @@ def calculate_momentum_metrics(tickers):
     try:
         # Fetching for ALL candidates in one go
         # Group by ticker is safer for multi-ticker
-        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=True)
+        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=False)
     except Exception as e:
         st.error(f"Data Fetch Error: {e}")
         return None, None
