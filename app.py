@@ -1178,16 +1178,15 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-    # Hide Streamlit standard UI elements (Footer, Deploy, Decoration)
-    # NOTE: Do NOT hide 'header' or '#MainMenu' as this hides the mobile hamburger menu!
+    # Hide Streamlit standard UI elements
+    # NOTE: Use #MainMenu to hide the "Three Dots" but keep the Header for the Sidebar Burger!
     hide_st_style = """
             <style>
+            #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             .stDeployButton {display:none;}
             [data-testid="stAppDeployButton"] {display:none;}
-            [data-testid="stDecoration"] {display:none;}
             [data-testid="stStatusWidget"] {display:none;}
-            [data-testid="stToolbar"] {visibility: hidden;}
             </style>
             """
     st.markdown(hide_st_style, unsafe_allow_html=True)
