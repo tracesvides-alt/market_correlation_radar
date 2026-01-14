@@ -10,6 +10,10 @@ import random
 from datetime import datetime, date
 import plotly.express as px
 import re
+import pickle
+import os
+import market_logic
+from market_logic import SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST
 
 # Page Config (Must be first Streamlit command)
 st.set_page_config(
@@ -147,43 +151,8 @@ STATIC_MENU_ITEMS = [
 
 # ... (rest of constants stays same until end of lists) ...
 
-# --- Hardcoded Momentum Watchlist (Categorized) ---
-# "Momentum Universe" - High Beta, Liquid, & Thematic Leaders
-SECTOR_DEFINITIONS = {
-   "Space & Defense": [
-        "PLTR", "RKLB", "LMT", "RTX", "NOC", "GD", "BA", "HII", "LDOS",
-        "AXON", "VIRT", "KTOS", "AVAV", "SPCE", "ASTS", "Lunr" 
-   ],
-   "AI & Semi (High Beta)": [
-        "NVDA", "AMD", "AVGO", "MU", "SMCI", "ARM", "TSM", "INTC", "QCOM", "TXN",
-        "ADI", "KLAC", "LRCX", "AMAT", "MRVL", "ONTO", "COHR", "VRT", "ANET",
-        "PSTG", "DELL", "HPE", "ORCL", "MSFT", "GOOGL", "META", "AMZN",
-        "SOXL", "SMH", "USD", "TQQQ", "TECL" 
-   ],
-   "Energy & Resources (Nuclear/Uranium/Copper)": [
-        "CCJ", "URA", "U.UN", "NXE", "DNN", "UEC", "UUUU", "LEU", "BWXT", "OKLO", "SMR",
-        "COPX", "FCX", "SCCO", "HBM", "TECK", "RIO", "BHP", "VALE", 
-        "XOM", "CVX", "SLB", "HAL", "OXY", "KMI", "WMB", "LNG"
-   ],
-   "Infra & Industry (Caterpillar/Deere/Grid)": [
-        "CAT", "DE", "URI", "ETN", "PWR", "EME", "GE", "HON", "MMM", "ITW", 
-        "PH", "CMI", "PCAR", "FAST", "XYL", "VMI", "GNRC"
-   ],
-   "Auto & EV (Tesla/Rivian)": [
-        "TSLA", "RIVN", "LCID", "NIO", "XPEV", "LI", "F", "GM", "TM", "HMC",
-        "ON", "STM", "MBLY", "QS", "ALB", "LTHM"
-   ],
-   "FinTech & Crypto & Real Estate": [
-        "COIN", "MSTR", "HOOD", "PYPL", "SQ", "AFRM", "UPST", "SOFI", "V", "MA",
-        "JPM", "GS", "MS", "BAC", "C", "WFC", "BLK", "BX", "KKR", 
-        "PLD", "AMT", "CCI", "O", "DLR", "EQIX", "PSA", "VICI"
-   ],
-   "Consumer & Health & Bio": [
-        "LLY", "NVO", "VRTX", "REGN", "AMGN", "GILD", "BIIB", "MRNA", "PFE", "JNJ",
-        "XBI", "LABU", "COST", "WMT", "TGT", "HD", "LOW", "MCD", "SBUX", "CMG",
-        "NKE", "LULU", "ONON", "DECK", "CROX", "DIS", "NFLX"
-   ]
-}
+# --- Constants (Imported from market_logic) ---
+# SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST are imported.
 
 # --- Thematic ETF List (Metrics Benchmark) ---
 THEMATIC_ETFS = {
@@ -742,66 +711,9 @@ def calculate_simulated_return(portfolio_df, weight_pct=1.0):
 
 # --- Logic Functions: Momentum Master (New) ---
 
-# --- Constants: Momentum Universe ---
-# "Always Watching" list to ensure main characters are never missed# ==========================================
-# 📊 STATIC WATCHLIST & SECTOR MAP
-# ==========================================
+# --- Logic Functions: Momentum Master (Offline Logic Integration) ---
+# Constants are imported from market_logic.
 
-SECTOR_DEFINITIONS = {
-    "🌌 Space & Defense": [
-        'RKLB', 'ASTS', 'PLTR', 'SPIR', 'LUNR', 'BKSY', 'MAXR', 'SIDU',
-        'RTX', 'LMT', 'NOC', 'GD', 'LHX', 'AXON', 'KTOS', 'AVAV', 'HII', 'BA', 'CAE', 'HEI',
-        'JOBY', 'ACHR', 'EH',
-        'PL', 'RDW', 'RCAT', 'ONDS', 'DPRO', 'PDYN' # From Gems
-    ],
-    "🧠 AI & Semi": [
-        'MSFT', 'GOOGL', 'AMZN', 'META', 'ORCL', 'DOCN', 'IREN', 'WULF', 'CORZ', 'NBIS',
-        'VST', 'CEG', 'NRG', 'GE', 'VRT', 'NVT', 'FIX', 'EMR', 'ETN', 'PWR', 'APH', 'COHR', 'GLW', 'PSTG',
-        'NVDA', 'AMD', 'AVGO', 'MU', 'TSM', 'ARM', 'SMCI', 'AMAT', 'LRCX', 'KLAC', 'INTC', 'QCOM', 'TXN', 'ADI', 'MRVL', 'ON',
-        'PLTR', 'CRM', 'NOW', 'SNOW', 'DDOG', 'PATH', 'IONQ', 'RGTI', 'QBITS', 'QTUM', 'RXRX', 'SDGR', 'CRWD', 'PANW',
-        'RBRK', 'ZS', 'MDB', 'CRWV', 'CIFR', 'APLD', 'ALAB', 'CRDO', 'NET', 'ASML', 'SKYT', 'AMKR', 'SNDK', 'WDC' # From Gems
-    ],
-    "⚛️ Energy & Resources": [
-        'CCJ', 'URA', 'UEC', 'OKLO', 'SMR', 'BWXT', 'LEU',
-        'GLD', 'NEM', 'GOLD', 'SLV', 'PAAS', 'FCX', 'SCCO', 'COPX', 'AA', 'CENX', 'X', 'CLF', 'NUE', 'ALB', 'SQM', 'LAC', 'MP',
-        'XOM', 'CVX', 'SHEL', 'COP', 'EOG', 'EQT', 'LNG', 'KMI', 'WMB', 'ARCH', 'HCC', 'BTU', 'SLB', 'HAL',
-        'LIN', 'APD', 'DOW', 'CTVA', 'MOS', 'NTR', 'ADM', 'BG',
-        'GEV', 'NEE', 'NNE', 'EOSE', 'BE', 'NVTS', 'UUUU', 'CRML', 'UAMY', 'ASPI' # From Gems
-    ],
-    "🏗️ Infra & Industry": [
-        'CAT', 'DE', 'URI', 'PWR', 'J', 'EME', 'UNP', 'CSX', 'WAB', 'GATX', 'TRN',
-        'ROK', 'PH', 'TER', 'KEY', 'CGNX', 'TSLA', 'GOOG', 'MBLY', 'VUZI',
-        'UPS', 'FDX', 'JBHT', 'ODFL', 'XPO',
-        'POWL', 'MOD', 'ERJ' # From Gems
-    ],
-    "🚗 Auto & EV": [
-        'TSLA', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'BYDDF', 'QS', 'ENVX', 'FREY',
-        'GM', 'F', 'TM', 'HMC', 'STLA', 'MGA', 'APTV', 'BWA', 'CVNA', 'KMX', 'ORLY', 'AZO',
-        'UBER', 'LYFT', 'GRAB'
-    ],
-    "🏦 FinTech & Real Estate": [
-        'JPM', 'BAC', 'GS', 'MS', 'BLK', 'KKR', 'APO', 'NU', 'SOFI',
-        'V', 'MA', 'PYPL', 'SQ', 'AFRM', 'UPST', 'COIN', 'HOOD', 'MSTR', 'MARA', 'CLSK', 'LMND',
-        'CB', 'PGR', 'TRV', 'MET', 'PRU', 'AON', 'MMC',
-        'DHI', 'LEN', 'PHM', 'TOL', 'LOW', 'HD', 'BLD', 'MAS', 'VMC', 'MLM'
-    ],
-    "💊 Consumer & Health": [
-        'KO', 'PEP', 'MNST', 'STZ', 'BUD', 'PM', 'MO', 'TSN', 'GIS', 'K', 'SYY', 'MDLZ', 'HSY',
-        'WMT', 'COST', 'TGT', 'AMZN', 'SHOP', 'MELI', 'NKE', 'LULU', 'ONON', 'TJX', 'ROST', 'LVMUY', 'TPR', 'EL', 'ULTA',
-        'LLY', 'NVO', 'JNJ', 'PFE', 'MRK', 'ABBV', 'AMGN', 'VRTX', 'REGN', 'ISRG', 'SYK', 'TMO', 'DHR', 'MCK', 'COR', 'UNH', 'ELV', 'HCA',
-        'NFLX', 'DIS', 'WBD', 'LYV', 'BKNG', 'ABNB', 'MAR', 'HLT', 'RCL', 'CCL', 'DAL', 'UAL', 'LUV',
-        'VKTX', 'SMMT', 'ANF', 'SG', 'ROOT', 'GCT', 'WING', 'LNTH', 'ASP', 'CART', 'TSEM' # From Gems mixed
-    ]
-}
-
-# 1. Flatten into Dict map for lookup: {'NVDA': '🧠 AI & Semi', ...}
-TICKER_TO_SECTOR = {}
-for sector, tickers in SECTOR_DEFINITIONS.items():
-    for t in tickers:
-        TICKER_TO_SECTOR[t] = sector
-
-# 2. Complete Watchlist
-STATIC_MOMENTUM_WATCHLIST = list(TICKER_TO_SECTOR.keys())
 
 # --- Metadata Helpers ---
 @st.cache_data(ttl=86400) # Cache metadata for a day
@@ -833,380 +745,83 @@ def get_ticker_metadata(ticker):
     except:
         return ticker, '🌊 Market Mover'
 
-import concurrent.futures
-
-@st.cache_data(ttl=900) 
-def get_momentum_candidates(mode="hybrid"):
+@st.cache_data(ttl=3600) # 1 hour cache
+def load_cached_data():
     """
-    Builds a 'Momentum Universe' candidates list.
-    Performance Optimization: Parallelized scraping.
-    Returns: List of unique ticker strings.
+    保存されたCSVとPickleを読み込む。
+    ファイルがない場合のみ、緊急用としてYahooに取りに行く（フォールバック）。
     """
-    
-    # 1. Dynamic Sources (Yahoo Finance)
-    sources = [
-        "https://finance.yahoo.com/markets/stocks/gainers/",
-        "https://finance.yahoo.com/markets/stocks/most-active/",
-        "https://finance.yahoo.com/markets/stocks/52-week-gainers/"
-    ]
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-
-    all_candidates = set()
-    dynamic_names = {} # Capture names during scrape to save API calls
-    
-    # Add Static List first
-    for t in STATIC_MOMENTUM_WATCHLIST:
-        all_candidates.add(t)
-
-    # Scrape Dynamic Movers (Parallel)
-    # print("Scraping Dynamic Sources...")
-    
-    def fetch_source(url):
+    if os.path.exists("data/momentum_cache.csv") and os.path.exists("data/history_cache.pkl"):
         try:
-            response = requests.get(url, headers=headers, timeout=5)
-            response.raise_for_status()
-            dfs = pd.read_html(StringIO(response.text))
-            if dfs:
-                return dfs[0]
+            # キャッシュからロード
+            df = pd.read_csv("data/momentum_cache.csv")
+            with open("data/history_cache.pkl", "rb") as f:
+                history = pickle.load(f)
+            
+            # 更新時刻の確認
+            last_update = "Unknown"
+            if os.path.exists("data/last_updated.txt"):
+                with open("data/last_updated.txt", "r") as f:
+                    last_update = f.read().strip()
+                    
+            return df, history, last_update
         except Exception as e:
-            # print(f"Source fetch failed {url}: {e}")
-            return None
+            st.warning(f"Cache load failed: {e}. Falling back to live fetch.")
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = {executor.submit(fetch_source, url): url for url in sources}
-        for future in concurrent.futures.as_completed(futures):
-            df = future.result()
-            if df is not None:
-                 # Yahoo usually has 'Symbol' and 'Name'
-                if 'Symbol' in df.columns:
-                    # Take top 15
-                    top_df = df.head(15)
-                    for _, row in top_df.iterrows():
-                        sym = str(row['Symbol']).split()[0]
-                        all_candidates.add(sym)
-                        
-                        # Capture Name if available
-                        if 'Name' in row and isinstance(row['Name'], str):
-                            dynamic_names[sym] = row['Name']
-
-    # Persist scraped names to Session State (for Name Metadata)
-    if 'dynamic_names' not in st.session_state:
-        st.session_state['dynamic_names'] = {}
-    st.session_state['dynamic_names'].update(dynamic_names)
-
-    return list(all_candidates)
-
-@st.cache_data(ttl=300, show_spinner=False)
-def calculate_momentum_metrics(tickers):
-    """
-    Calculates detailed metrics for the given tickers.
-    Optimized: Handles Validation (Price/Vol) AND Metrics in one pass.
-    Cached: 5 minutes TTL to avoid re-downloading on every interaction.
-    """
-    if not tickers:
-        return None, None
-
-    # Download 1y data to calculate long-term MA and 1y return
-    try:
-        # Fetching for ALL candidates in one go
-        # Group by ticker is safer for multi-ticker
-        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=True)
-    except Exception as e:
-        st.error(f"Data Fetch Error: {e}")
-        return None, None
-
-    stats_list = []
-    history_dict = {}
-
-    for t in tickers:
-        try:
-            # Handle df structure
-            t_data = pd.DataFrame()
-            if isinstance(df.columns, pd.MultiIndex):
-                if t in df.columns.levels[0]:
-                    t_data = df[t]
-                elif t in df.columns:
-                     t_data = df[t]
-            else:
-                 t_data = df
-
-            if t_data.empty: continue
-            if 'Close' not in t_data.columns: continue
-
-            t_data = t_data.dropna()
-            if t_data.empty: continue
-            
-            # --- 1. Validation Filter (Integrated) ---
-            # Check most recent data point
-            current_price = t_data['Close'].iloc[-1]
-            current_vol = t_data['Volume'].iloc[-1]
-            
-            # For Static List: We skipping filter (Assume they are valid)
-            if t not in STATIC_MOMENTUM_WATCHLIST:
-                # For Dynamic: Strict Penny Filter
-                if current_price < 2.0 or current_vol < 200000:
-                    continue
-
-            # --- 2. Calculations ---
-            
-            # Returns
-            def get_ret(days):
-                if len(t_data) < days: return 0.0
-                return (current_price - t_data['Close'].iloc[-days]) / t_data['Close'].iloc[-days] * 100
-
-            metrics = {}
-            metrics['Ticker'] = t
-            metrics['Price'] = current_price
-            metrics['1d'] = get_ret(2)
-            metrics['5d'] = get_ret(5)
-            metrics['1mo'] = get_ret(21)
-            metrics['3mo'] = get_ret(63)
-            metrics['6mo'] = get_ret(126)
-            
-            # YTD
-            current_year = t_data.index[-1].year
-            ytd_data = t_data[t_data.index.year == current_year]
-            if not ytd_data.empty:
-                metrics['YTD'] = (current_price - ytd_data['Close'].iloc[0]) / ytd_data['Close'].iloc[0] * 100
-            else:
-                metrics['YTD'] = 0.0
-
-            if len(t_data) >= 252:
-                metrics['1y'] = get_ret(252)
-            else:
-                metrics['1y'] = (current_price - t_data['Close'].iloc[0]) / t_data['Close'].iloc[0] * 100
-            
-            # RVOL
-            if len(t_data) > 21:
-                avg_vol_20 = t_data['Volume'].iloc[-21:-1].mean()
-                if pd.isna(avg_vol_20) or avg_vol_20 == 0:
-                    rvol = 0
-                else:
-                    rvol = current_vol / avg_vol_20
-            else:
-                rvol = 0
-            metrics['RVOL'] = rvol
-            
-            # Technicals
-            if len(t_data) >= 50:
-                sma50 = t_data['Close'].rolling(window=50).mean().iloc[-1]
-                metrics['Above_SMA50'] = current_price > sma50
-            else:
-                metrics['Above_SMA50'] = False
-            
-            rsi_series = calculate_rsi(t_data['Close'], 14)
-            metrics['RSI'] = rsi_series.iloc[-1] if not rsi_series.empty else 50
-            
-            # Signals
-            signals = []
-            if metrics['RVOL'] > 2.0: signals.append('⚡')
-            if metrics['Above_SMA50'] and metrics['3mo'] > 0: signals.append('🐂')
-            
-            # 🛒 Dip Buy: Uptrend (Above SMA50) but Short-term cool (RSI < 45)
-            if metrics['Above_SMA50'] and metrics['RSI'] < 45: signals.append('🛒')
-
-            # 🐻 Bear Trend: Downtrend (Below SMA50) & Negative Mom
-            if not metrics['Above_SMA50'] and metrics['3mo'] < 0: signals.append('🐻')
-
-            if metrics['RSI'] > 70: signals.append('🔥')
-            if metrics['RSI'] < 30: signals.append('🧊')
-            metrics['Signal'] = "".join(signals)
-            
-            stats_list.append(metrics)
-            
-            # Save history
-            norm_hist = (t_data['Close'] / t_data['Close'].iloc[0]) * 100
-            history_dict[t] = norm_hist
-
-        except Exception as e:
-            # print(f"Error calc {t}: {e}")
-            continue
-            
-    if not stats_list:
-        return None, None
-        
-    df_metrics = pd.DataFrame(stats_list)
-    cols = ['Ticker', 'Signal', 'Price', '1d', '5d', '1mo', '3mo', '6mo', 'YTD', '1y', 'RVOL', 'RSI']
-    df_metrics = df_metrics[cols]
-
-def calculate_rsi(series, period=14):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
-
-def calculate_momentum_metrics(tickers):
-    """
-    Calculates detailed metrics for the given tickers.
-    Optimized: Handles Validation (Price/Vol) AND Metrics in one pass.
-    """
-    if not tickers:
-        return None, None
-
-    # Download 1y data to calculate long-term MA and 1y return
-    try:
-        # Fetching for ALL candidates in one go
-        # Group by ticker is safer for multi-ticker
-        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=False)
-    except Exception as e:
-        st.error(f"Data Fetch Error: {e}")
-        return None, None
-
-    stats_list = []
-    history_dict = {}
-
-    for t in tickers:
-        try:
-            # Handle df structure
-            t_data = pd.DataFrame()
-            if isinstance(df.columns, pd.MultiIndex):
-                if t in df.columns.levels[0]:
-                    t_data = df[t]
-                elif t in df.columns:
-                     t_data = df[t]
-            else:
-                 t_data = df
-
-            if t_data.empty: continue
-            if 'Close' not in t_data.columns: continue
-
-            t_data = t_data.dropna()
-            if t_data.empty: continue
-            
-            # --- 1. Validation Filter (Integrated) ---
-            # Check most recent data point
-            current_price = t_data['Close'].iloc[-1]
-            current_vol = t_data['Volume'].iloc[-1]
-            
-            # For Static List: We skipping filter (Assume they are valid)
-            if t not in STATIC_MOMENTUM_WATCHLIST:
-                # For Dynamic: Strict Penny Filter
-                if current_price < 2.0 or current_vol < 200000:
-                    continue
-
-            # --- 2. Calculations ---
-            
-            # Returns
-            def get_ret(days):
-                if len(t_data) < days: return 0.0
-                return (current_price - t_data['Close'].iloc[-days]) / t_data['Close'].iloc[-days] * 100
-
-            metrics = {}
-            metrics['Ticker'] = t
-            metrics['Price'] = current_price
-            metrics['1d'] = get_ret(2)
-            metrics['5d'] = get_ret(5)
-            metrics['1mo'] = get_ret(21)
-            metrics['3mo'] = get_ret(63)
-            metrics['6mo'] = get_ret(126)
-            
-            # YTD
-            current_year = t_data.index[-1].year
-            ytd_data = t_data[t_data.index.year == current_year]
-            if not ytd_data.empty:
-                metrics['YTD'] = (current_price - ytd_data['Close'].iloc[0]) / ytd_data['Close'].iloc[0] * 100
-            else:
-                metrics['YTD'] = 0.0
-
-            if len(t_data) >= 252:
-                metrics['1y'] = get_ret(252)
-            else:
-                metrics['1y'] = (current_price - t_data['Close'].iloc[0]) / t_data['Close'].iloc[0] * 100
-            
-            # RVOL
-            if len(t_data) > 21:
-                avg_vol_20 = t_data['Volume'].iloc[-21:-1].mean()
-                if pd.isna(avg_vol_20) or avg_vol_20 == 0:
-                    rvol = 0
-                else:
-                    rvol = current_vol / avg_vol_20
-            else:
-                rvol = 0
-            metrics['RVOL'] = rvol
-            
-            # Technicals
-            if len(t_data) >= 50:
-                sma50 = t_data['Close'].rolling(window=50).mean().iloc[-1]
-                metrics['Above_SMA50'] = current_price > sma50
-            else:
-                metrics['Above_SMA50'] = False
-            
-            rsi_series = calculate_rsi(t_data['Close'], 14)
-            metrics['RSI'] = rsi_series.iloc[-1] if not rsi_series.empty else 50
-            
-            # Signals
-            signals = []
-            if metrics['RVOL'] > 2.0: signals.append('⚡')
-            if metrics['Above_SMA50'] and metrics['3mo'] > 0: signals.append('🐂')
-            
-            # 🛒 Dip Buy: Uptrend (Above SMA50) but Short-term cool (RSI < 45)
-            if metrics['Above_SMA50'] and metrics['RSI'] < 45: signals.append('🛒')
-
-            # 🐻 Bear Trend: Downtrend (Below SMA50) & Negative Mom
-            if not metrics['Above_SMA50'] and metrics['3mo'] < 0: signals.append('🐻')
-
-            if metrics['RSI'] > 70: signals.append('🔥')
-            if metrics['RSI'] < 30: signals.append('🧊')
-            metrics['Signal'] = "".join(signals)
-            
-            stats_list.append(metrics)
-            
-            # Save history
-            norm_hist = (t_data['Close'] / t_data['Close'].iloc[0]) * 100
-            history_dict[t] = norm_hist
-
-        except Exception as e:
-            # print(f"Error calc {t}: {e}")
-            continue
-            
-    if not stats_list:
-        return None, None
-        
-    df_metrics = pd.DataFrame(stats_list)
-    cols = ['Ticker', 'Signal', 'Price', '1d', '5d', '1mo', '3mo', '6mo', 'YTD', '1y', 'RVOL', 'RSI']
-    df_metrics = df_metrics[cols]
-    
-    return df_metrics, history_dict
+    # 初回起動時などファイルがない場合は、market_logicを使って直接取得
+    candidates = market_logic.get_momentum_candidates()
+    df, hist = market_logic.calculate_momentum_metrics(candidates)
+    if df is not None:
+        return df, hist, "Live Fetch (No Cache Found)"
+    return None, None, "Failed"
 
 # --- Main App ---
 def main():
     # st.set_page_config is now called globally at line 15
     
-   # --- Hide Streamlit Style (Siblings Removal Version) ---
+   # --- Hide Streamlit Style (Sidebar RESTORED Version) ---
     hide_st_style = """
         <style>
-        /* 1. ヘッダーの背景を透明にする */
+        /* 1. ヘッダーの背景を透明にする（左上のボタンは見せるため） */
         header[data-testid="stHeader"] {
             background: transparent !important;
             border-bottom: none !important;
         }
 
-        /* 2. 【ここが肝】ヘッダーの中身のうち、「一番左(first-child)」以外を全て消す */
-        /* サイドバーボタンは常に一番左にあるため、これなら生き残ります */
-        header[data-testid="stHeader"] > div:not(:first-child) {
+        /* 2. 【修正】右上の「アクション要素」だけを狙い撃ちで消す */
+        /* stToolbar は消さない（ここにハンバーガーがいる可能性があるため） */
+        [data-testid="stHeaderActionElements"] {
             display: none !important;
-            visibility: hidden !important;
         }
         
-        /* 3. 右上のアイコン群を念のため個別にも消す */
-        [data-testid="stHeaderActionElements"] { display: none !important; }
-        [data-testid="stToolbar"] { display: none !important; }
+        /* 3. 上部の虹色の線を消す */
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
 
-        /* 4. フッターを消す */
+        /* 4. ランニング中のステータス（右上の人型など）を消す */
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+        }
+
+        /* 5. フッター（Streamlitで構築...）を完全に消す */
         footer {
             visibility: hidden !important;
             height: 0px !important;
         }
-        [data-testid="stFooter"] { display: none !important; }
-        div[class^='viewerBadge'] { display: none !important; }
+        [data-testid="stFooter"] {
+            display: none !important;
+        }
+        #MainMenu {
+            display: none !important;
+        }
+        
+        /* Cloudのロゴ対策 */
+        div[class^='viewerBadge'] {
+            display: none !important;
+        }
 
-        /* 5. レイアウト調整 */
+        /* 6. コンテンツ位置の調整 */
         .block-container {
             padding-top: 3rem !important;
         }
@@ -1467,21 +1082,17 @@ def render_momentum_master():
         format_func=lambda x: period_map[x]
     )
 
-    with st.spinner(f'Scanning approx 100+ candidates for {selected_period} momentum...'):
-        # 1. Get Candidates (Hybrid)
-        candidates = get_momentum_candidates("hybrid")
+    with st.spinner(f'Loading cached momentum data for {selected_period}...'):
+        df_metrics, history_dict, last_updated = load_cached_data()
+        st.caption(f"📅 Data Last Updated: **{last_updated}** (Auto-updated daily at 06:00 JST)")
         
-        if not candidates:
-            st.error("現在、十分なデータが取得できませんでした。時間をおいて再試行してください。")
-            return
+        if st.button("🔄 Force Live Refresh (Emergency Only)"):
+            st.cache_data.clear()
+            st.rerun()
 
-        # 2. Calculate Metrics
-        # This will calculate ALL periods for these candidates
-        df_metrics, history_dict = calculate_momentum_metrics(candidates)
-        
-        if df_metrics is None or df_metrics.empty:
-            st.error("Metric calculation failed.")
-            return
+    if df_metrics is None or df_metrics.empty:
+        st.error("Data cache is empty and live fetch failed.")
+        return
             
     # --- UI: Top 5 Filter ---
     
