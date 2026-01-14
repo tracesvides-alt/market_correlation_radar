@@ -1178,43 +1178,35 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-   # --- Hide Streamlit Style (Visibility Override Method) ---
+   # --- Hide Streamlit Style (Siblings Removal Version) ---
     hide_st_style = """
         <style>
-        /* 1. ヘッダー全体を「見えなく」する（非表示ではなく不可視） */
-        /* これで右上のアイコンも、背景も、何もかも一旦見えなくなります */
+        /* 1. ヘッダーの背景を透明にする */
         header[data-testid="stHeader"] {
+            background: transparent !important;
+            border-bottom: none !important;
+        }
+
+        /* 2. 【ここが肝】ヘッダーの中身のうち、「一番左(first-child)」以外を全て消す */
+        /* サイドバーボタンは常に一番左にあるため、これなら生き残ります */
+        header[data-testid="stHeader"] > div:not(:first-child) {
+            display: none !important;
             visibility: hidden !important;
         }
-
-        /* 2. 【ここが重要】サイドバーのボタンだけを「見える」ように上書きする */
-        /* 親が hidden でも、子が visible なら、その子だけ浮き出て見えます */
-        [data-testid="stSidebarCollapsedControl"] {
-            visibility: visible !important;
-            display: block !important;
-        }
         
-        /* 古いバージョンのStreamlit用（念のため記述） */
-        [data-testid="baseButton-header"] {
-            visibility: visible !important;
-            display: block !important;
-        }
+        /* 3. 右上のアイコン群を念のため個別にも消す */
+        [data-testid="stHeaderActionElements"] { display: none !important; }
+        [data-testid="stToolbar"] { display: none !important; }
 
-        /* 3. 上部の虹色の線を消す */
-        [data-testid="stDecoration"] {
-            display: none !important;
-        }
-
-        /* 4. フッターを完全に消す */
+        /* 4. フッターを消す */
         footer {
             visibility: hidden !important;
-            display: none !important;
+            height: 0px !important;
         }
-        [data-testid="stFooter"] {
-            display: none !important;
-        }
-        
-        /* 5. 余白調整 */
+        [data-testid="stFooter"] { display: none !important; }
+        div[class^='viewerBadge'] { display: none !important; }
+
+        /* 5. レイアウト調整 */
         .block-container {
             padding-top: 3rem !important;
         }
