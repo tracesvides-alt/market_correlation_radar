@@ -1178,45 +1178,36 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-    # --- Hide Streamlit Style (Absolute Position Hack) ---
+    # --- Hide Streamlit Style (Safe Version) ---
     hide_st_style = """
         <style>
-        /* 1. ヘッダーの背景を透明にする（左上のハンバーガーボタンは見せるため） */
+        /* 1. ヘッダーの背景だけを透明にする（ボタンは残す） */
         header[data-testid="stHeader"] {
             background: transparent !important;
             border-bottom: none !important;
         }
 
-        /* 2. 右上のアイコン群を「位置指定」で強制的に消す */
-        /* クラス名が変わっても、ヘッダーの右側にある要素は全て消します */
-        header[data-testid="stHeader"] > div:last-child {
-            display: none !important;
-            visibility: hidden !important;
-        }
+        /* 2. 【修正】右上の不要な要素だけを「名前」で指定して消す */
+        /* 位置指定(div:last-child)は事故の元なので廃止 */
         
-        /* 念のための個別指定（GitHub, Star, Share等のコンテナ） */
-        [data-testid="stHeaderActionElements"] {
-            display: none !important;
-        }
-        [data-testid="stToolbar"] {
-            display: none !important;
-        }
+        [data-testid="stHeaderActionElements"] { display: none !important; }
+        [data-testid="stToolbar"] { display: none !important; }
+        [data-testid="stStatusWidget"] { display: none !important; }
+        
+        /* 古いバージョンや一部の環境に残るボタン類 */
+        button[kind="header"] { display: none !important; }
+        div[data-testid="stDecoration"] { display: none !important; }
 
-        /* 3. 上部の虹色の線を消す */
-        [data-testid="stDecoration"] {
-            display: none !important;
-        }
-
-        /* 4. 標準フッター（Made with Streamlit）を消す */
+        /* 3. フッターを完全に消す */
         footer {
             visibility: hidden !important;
             height: 0px !important;
         }
-        [data-testid="stFooter"] {
-            display: none !important;
-        }
+        [data-testid="stFooter"] { display: none !important; }
+        #MainMenu { display: none !important; }
+        .stDeployButton { display: none !important; }
         
-        /* 5. 余白調整 */
+        /* 4. コンテンツを上に詰める */
         .block-container {
             padding-top: 3rem !important;
         }
