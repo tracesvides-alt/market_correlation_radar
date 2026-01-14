@@ -1207,9 +1207,7 @@ def render_momentum_master():
     if selected_period != '1d':
         st.caption("※長期分析（5d以上）のため、監視リスト（Static Watchlist）内のみでランキングしています。")
     
-    with st.expander("🛠️ Debug Information (Candidates)", expanded=False):
-         st.write(f"Candidates Found: {len(candidates)}")
-         st.write(f"List: {', '.join(candidates)}")
+
     
     # Styling
     def highlight_focus(val):
