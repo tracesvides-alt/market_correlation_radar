@@ -1178,36 +1178,47 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-    # --- Hide Streamlit Style (Hamburger Menu Friendly Version) ---
+    # --- Hide Streamlit Style (Absolute Position Hack) ---
     hide_st_style = """
         <style>
-        /* 1. フッター（下の Made with Streamlit）を完全に消す */
-        footer {visibility: hidden !important;}
-        [data-testid="stFooter"] {display: none !important;}
-        
-        /* 2. ヘッダーの「バー（背景色や装飾）」だけを透明にして見えなくする */
-        /* ※header全体を消すとボタンも消えるため、背景透明化で対応 */
-        /* [data-testid="stHeader"] {
-            background-color: rgba(0,0,0,0) !important;
+        /* 1. ヘッダーの背景を透明にする（左上のハンバーガーボタンは見せるため） */
+        header[data-testid="stHeader"] {
+            background: transparent !important;
             border-bottom: none !important;
-        } */
-        [data-testid="stDecoration"] {
-            display: none !important; /* 上部の虹色の線を消す */
         }
 
-        /* 3. 右上の「...」メニューとデプロイボタンを消す */
-        /* 左上のハンバーガー（サイドバー開閉）は残ります */
-        #MainMenu {visibility: hidden !important;}
-        .stDeployButton {display:none !important;}
-        [data-testid="stAppDeployButton"] {display:none !important;}
-        [data-testid="stHeaderActionElements"] {display: none !important;}
-        [data-testid="stStatusWidget"] {display:none !important;}
+        /* 2. 右上のアイコン群を「位置指定」で強制的に消す */
+        /* クラス名が変わっても、ヘッダーの右側にある要素は全て消します */
+        header[data-testid="stHeader"] > div:last-child {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* 念のための個別指定（GitHub, Star, Share等のコンテナ） */
+        [data-testid="stHeaderActionElements"] {
+            display: none !important;
+        }
+        [data-testid="stToolbar"] {
+            display: none !important;
+        }
 
-        /* 4. 余白調整 */
-        /* ヘッダーの背景が消えた分、コンテンツを少し上に詰める */
+        /* 3. 上部の虹色の線を消す */
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
+
+        /* 4. 標準フッター（Made with Streamlit）を消す */
+        footer {
+            visibility: hidden !important;
+            height: 0px !important;
+        }
+        [data-testid="stFooter"] {
+            display: none !important;
+        }
+        
+        /* 5. 余白調整 */
         .block-container {
-            padding-top: 2rem !important; 
-            padding-bottom: 0rem !important;
+            padding-top: 3rem !important;
         }
         </style>
     """
