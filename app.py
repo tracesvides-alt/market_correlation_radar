@@ -13,7 +13,7 @@ import re
 import pickle
 import os
 import market_logic
-from market_logic import SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST
+from market_logic import SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST, THEMATIC_ETFS
 
 # Page Config (Must be first Streamlit command)
 st.set_page_config(
@@ -155,53 +155,9 @@ STATIC_MENU_ITEMS = [
 # SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST are imported.
 
 # --- Thematic ETF List (Metrics Benchmark) ---
-THEMATIC_ETFS = {
-    # --- 🤖 最先端ハイテク (Frontier Tech) ---
-    "Semiconductors (半導体)": "SMH",
-    "AI & Robotics (ロボ/AI)": "BOTZ",
-    "Cybersecurity (サイバー)": "CIBR",
-    "Cloud Computing (クラウド)": "CLOU",
-    "Quantum (量子/次世代)": "QTUM",
-    "Blockchain (ブロックチェーン)": "BLOK",
-    "Metaverse/Gaming (ゲーム)": "HERO",
 
-    # --- 🏭 インフラ・エネルギー (Physical World) ---
-    "Nuclear/Uranium (原子力/ウラン)": "URA",
-    "Data Center/Infra (DC/建設)": "SRVR", 
-    "US Infrastructure (インフラ)": "PAVE",
-    "Grid & Power (電力網)": "GRID",
-    "Clean Energy (クリエネ)": "ICLN",
-    "Water Resources (水資源)": "PHO",
-    "Aerospace & Defense (防衛)": "ITA",
-    "Space Exploration (宇宙)": "ARKX",
-
-    # --- 🧬 ヘルスケア・バイオ (Life Science) ---
-    "Biotech (バイオ)": "XBI",
-    "Genomics (ゲノム)": "GNOM",
-    "Healthcare Providers (医療)": "IHF",
-    "Medical Devices (医療機器)": "IHI",
-
-    # --- 🛒 消費・トレンド (Consumer) ---
-    "E-commerce (EC)": "IBUY",
-    "Fintech (フィンテック)": "FINX",
-    "Millennials (若者消費)": "MILN",
-    "Homebuilders (住宅)": "XHB",
-    
-    # --- 🛡️ ディフェンシブ・マクロ (Defensive/Macro) ---
-    "Healthcare (ヘルスケア全体)": "XLV",
-    "Consumer Staples (必需品)": "XLP",
-    "Utilities (公益)": "XLU",
-    "High Dividend (高配当)": "VYM",
-    "Treasury 20Y+ (米国債)": "TLT",
-    "VIX Short-Term (恐怖指数)": "VIXY", 
-
-    # --- ⛏️ コモディティ・暗号資産 (Hard Assets) ---
-    "Gold (金)": "GLD",
-    "Silver (銀)": "SLV",
-    "Oil & Gas (石油)": "XOP",
-    "Copper Miners (銅)": "COPX",
-    "Bitcoin Strategy (ビットコイン)": "BITO"
-}
+# --- Thematic ETFs (Imported from market_logic) ---
+# THEMATIC_ETFS is imported.
 
 # --- Risk Management Helpers ---
 def get_earnings_next(ticker):
@@ -1363,12 +1319,16 @@ def render_momentum_master():
     st.header("🌍 Global Theme & Sector Analysis")
     st.markdown("市場の資金がどの「テーマ・セクター」に流れているかをマクロ視点で分析します。")
 
-    with st.spinner('Analyzing 40+ Thematic ETFs...'):
+    with st.spinner('Analyzing 40+ Thematic ETFs (Offline)...'):
         # 1. Prepare ETF list
         etf_tickers = list(THEMATIC_ETFS.values())
         
-        # 2. Calculate ETF Metrics (Re-using existing function)
-        df_etf, _ = calculate_momentum_metrics(etf_tickers)
+        # 2. Filter from Cached Data (Offline)
+        # Verify df_metrics exists (it should be loaded at top of render_momentum_master)
+        if df_metrics is not None and not df_metrics.empty:
+            df_etf = df_metrics[df_metrics['Ticker'].isin(etf_tickers)].copy()
+        else:
+            df_etf = pd.DataFrame() # Fallback
         
         if df_etf is not None and not df_etf.empty:
             # 3. Process & Sort

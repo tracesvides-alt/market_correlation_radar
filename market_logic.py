@@ -59,6 +59,42 @@ for sector, tickers in SECTOR_DEFINITIONS.items():
 
 STATIC_MOMENTUM_WATCHLIST = list(TICKER_TO_SECTOR.keys())
 
+# --- Thematic ETF List (Metrics Benchmark) ---
+THEMATIC_ETFS = {
+    # --- 🤖 Future Tech (High Growth) ---
+    "Cloud Computing (クラウド)": "CLOU",
+    "Cybersecurity (サイバー)": "CIBR",
+    "Robotics & AI (ロボット)": "BOTZ",
+    "Semiconductors (半導体)": "SMH",
+    "Genomics (ゲノム)": "GNOM",
+    "Healthcare Providers (医療)": "IHF",
+    "Medical Devices (医療機器)": "IHI",
+
+    # --- 🛒 消費・トレンド (Consumer) ---
+    "E-commerce (EC)": "IBUY",
+    "Fintech (フィンテック)": "FINX",
+    "Millennials (若者消費)": "MILN",
+    "Homebuilders (住宅)": "XHB",
+    
+    # --- 🛡️ ディフェンシブ・マクロ (Defensive/Macro) ---
+    "Healthcare (ヘルスケア全体)": "XLV",
+    "Consumer Staples (必需品)": "XLP",
+    "Utilities (公益)": "XLU",
+    "High Dividend (高配当)": "VYM",
+    "Treasury 20Y+ (米国債)": "TLT",
+    "VIX Short-Term (恐怖指数)": "VIXY", 
+
+    # --- ⛏️ コモディティ・暗号資産 (Hard Assets) ---
+    "Gold (金)": "GLD",
+    "Silver (銀)": "SLV",
+    "Oil & Gas (石油)": "XOP",
+    "Copper Miners (銅)": "COPX",
+    "Bitcoin Strategy (ビットコイン)": "BITO"
+}
+
+# Extend Static List with ETFs
+STATIC_MOMENTUM_WATCHLIST.extend(list(THEMATIC_ETFS.values()))
+
 # --- Functions ---
 
 def calculate_rsi(series, period=14):
@@ -92,6 +128,10 @@ def get_momentum_candidates(mode="hybrid"):
     
     # Add Static List first
     for t in STATIC_MOMENTUM_WATCHLIST:
+        all_candidates.add(t)
+    
+    # Add ETFs
+    for t in THEMATIC_ETFS.values():
         all_candidates.add(t)
 
     # Scrape Dynamic Movers (Parallel)
