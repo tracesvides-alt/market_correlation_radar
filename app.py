@@ -936,18 +936,30 @@ def generate_dynamic_comment(ticker, row):
     sma_ok = row.get('Above_SMA50', False)
     ret_3mo = row.get('3mo', 0)
     
+    ret_1d = row.get('1d', 0)
+    
     # Templates
     # 1. Volume Surge (Priority 1)
-    if rvol > 3.0:
+    if rvol > 5.0: # Raise threshold for generic "Something is leaking"
         templates = [
             f"🚀 {ticker}の出来高が異常値！何か漏れてるかも？",
-            f"⚡ 機関が動いたぞ。{ticker}の初動に乗り遅れるな。",
             f"💰 マネーゲーム開始の合図。{ticker}を監視せよ。",
             f"📢 {ticker}に何かが起きている...イナゴタワー建設予定地か？"
         ]
         return random.choice(templates)
+
+    # 2. Reversal Chance (Bear Trend but High Vol & Price Jump)
+    # SMA50 NG (Bearish) but Volume Spike (RVOL > 2.0) and Price Up (1d > 2%)
+    if not sma_ok and rvol > 2.0 and ret_1d > 2.0:
+        templates = [
+             f"🔄 おや？{ticker}の流れが変わったかも。下降トレンド中の出来高急増＋陽線。",
+             f"🧗‍♂️ 底打ち反転の初動か？{ticker}がベアトレンドを否定しようとしている。",
+             f"🫣 {ticker}、まだSMA50の下だが...この買い圧力は本物かもしれない。",
+             f"🤔 逃げる場面ではないぞ。{ticker}のセリングクライマックスは終わった可能性がある。"
+        ]
+        return random.choice(templates)
         
-    # 2. Overbought (RSI > 75)
+    # 3. Overbought (RSI > 75)
     if rsi > 75:
         templates = [
             f"🔥 {ticker}はアチアチだ。火傷する前に逃げとけ。",
@@ -957,7 +969,7 @@ def generate_dynamic_comment(ticker, row):
         ]
         return random.choice(templates)
         
-    # 3. Oversold (RSI < 30)
+    # 4. Oversold (RSI < 30)
     if rsi < 30:
         templates = [
             f"🧊 売られすぎ。そろそろ{ticker}のリバウンドあるで。",
@@ -966,7 +978,7 @@ def generate_dynamic_comment(ticker, row):
         ]
         return random.choice(templates)
 
-    # 4. Dip Buy (Uptrend but cool RSI)
+    # 5. Dip Buy (Uptrend but cool RSI)
     # Price > SMA50 (Bullish) but RSI < 45 (Not hot)
     if sma_ok and rsi < 45:
         templates = [
@@ -976,16 +988,17 @@ def generate_dynamic_comment(ticker, row):
         ]
         return random.choice(templates)
 
-    # 5. Strong Uptrend (SMA OK + Positive Mom + RSI OK)
+    # 6. Strong Uptrend (SMA OK + Positive Mom + RSI OK)
     if sma_ok and ret_3mo > 0:
         templates = [
             f"🐂 綺麗なチャートだ。{ticker}は素直に買い。",
             f"📈 逆らう理由がない。トレンドフォローこそ正義。",
+            f"⚡ 機関が動いている。{ticker}の初動に乗り遅れるな。",
             f"🚀 {ticker}は青天井モード突入か？握力高めていけ。"
         ]
         return random.choice(templates)
         
-    # 6. Bear Trend (Price < SMA50 & Negative Mom)
+    # 7. Bear Trend (Price < SMA50 & Negative Mom)
     if not sma_ok and ret_3mo < 0:
         templates = [
             f"🐻 完全な下降トレンド。{ticker}には触るな。",

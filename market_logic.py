@@ -12,42 +12,195 @@ from datetime import datetime
 
 # "Momentum Universe" - High Beta, Liquid, & Thematic Leaders
 SECTOR_DEFINITIONS = {
+    # ---------------------------------------------------------
+    # 1. AI & Semiconductor (Hardware / Cloud)
+    # ---------------------------------------------------------
+    "🖥️ AI: Hardware & Cloud Infra": [
+        "CRWV", "NVDA", "AMD", "SMCI", "VRT", "ANET", "PSTG", "DELL", "HPE", 
+        "TSM", "AVGO", "ARM", "MU", "QCOM", "AMAT", "LRCX", "GFS", "STM", 
+        "UMC", "ASX", "WDC", "ENTG", "AMKR", "ALAB", "NVTS", "SWKS", "KLAR", 
+        "MCHP", "TXN", "ADI", "ON", "Q", "APLD"
+    ],
+
+    # ---------------------------------------------------------
+    # 2. AI Software & Services
+    # ---------------------------------------------------------
+    "🧠 AI: Software & SaaS": [
+        "FIG", "PLTR", "MSFT", "GOOGL", "GOOG", "META", "NOW", "DDOG", "SNOW", 
+        "MDB", "PATH", "AI", "BBAI", "SOUN", "ESTC", "CDNS", "SNPS", "ZETA", 
+        "SYM", "DOCN", "APP", "TTD", "TEAM", "HUBS", "GTLB", "CFLT", "NET", 
+        "OKTA", "CRWD", "PANW", "FTNT", "ZS", "ORCL", "SAP", "IBM", "INTU", 
+        "ADBE", "CRM", "WDAY", "DOCU", "ZM", "GEN", "BOX", "DBX", "ASAN", 
+        "VRNS", "CCC", "FRSH", "KVYO", "UPWK", "MGNI", "OPCH", "PRO", "PAYC", 
+        "TYL", "RDDT", "DJT"
+    ],
+
+    # ---------------------------------------------------------
+    # 3. Crypto & FinTech
+    # ---------------------------------------------------------
+    "💸 Crypto & FinTech": [
+        "CRCL", "XYZ", "MSTR", "COIN", "MARA", "RIOT", "HOOD", "PYPL", "XYZ", 
+        "SOFI", "AFRM", "UPST", "BILL", "TOST", "FOUR", "PAYX", "ADP", "FIS", 
+        "FISV", "GPN", "FLUT", "DKNG", "RELY", "INTR", "PAGS", "WU", "STNE", 
+        "XP", "NU", "LC", "DLO", "BLSH", "GLXY","CORZ", "IREN", "WULF", 
+        "CIFR", "CLSK", "BTDR",  "HIVE", "BITF", "HUT"
+    ],
+
+    # ---------------------------------------------------------
+    # 4. Space & Defense
+    # ---------------------------------------------------------
     "🌌 Space & Defense": [
-        "PLTR", "RKLB", "LMT", "RTX", "NOC", "GD", "BA", "HII", "LDOS",
-        "AXON", "VIRT", "KTOS", "AVAV", "SPCE", "ASTS", "LUNR", "SPIR", "BKSY", "MAXR", "SIDU",
-        "JOBY", "ACHR", "EH", "PL", "RDW", "RCAT", "ONDS", "DPRO", "PDYN"
+        "RKLB", "ASTS", "LUNR", "JOBY", "ACHR", "BA", "PL", "SPIR", "SPCE", 
+        "IRDM", "SATS", "ONDS", "RTX", "KTOS", "HWM", "LMT", "GD", "NOC", 
+        "LHX", "AMTM", "AVAV", "AXON", "BWXT"
     ],
-    "🧠 AI & Semi": [
-        "NVDA", "AMD", "AVGO", "MU", "SMCI", "ARM", "TSM", "INTC", "QCOM", "TXN",
-        "ADI", "KLAC", "LRCX", "AMAT", "MRVL", "ONTO", "COHR", "VRT", "ANET",
-        "PSTG", "DELL", "HPE", "ORCL", "MSFT", "GOOGL", "META", "AMZN",
-        "SOXL", "SMH", "USD", "TQQQ", "TECL", 'DOCN', 'IREN', 'WULF', 'CORZ', 'NBIS',
-        'VST', 'CEG', 'NRG', 'GE', 'NVT', 'FIX', 'EMR', 'ETN', 'PWR', 'APH', 'GLW',
-        'CRM', 'NOW', 'SNOW', 'DDOG', 'PATH', 'IONQ', 'RGTI', 'QBITS', 'QTUM', 'RXRX', 'SDGR', 'CRWD', 'PANW',
-        'RBRK', 'ZS', 'MDB', 'CRWV', 'CIFR', 'APLD', 'ALAB', 'CRDO', 'NET', 'ASML', 'SKYT', 'AMKR', 'SNDK', 'WDC'
+
+    # ---------------------------------------------------------
+    # 5. Energy: Nuclear (AI Power Theme)
+    # ---------------------------------------------------------
+    "☢️ Energy: Nuclear": [
+        "OKLO", "SMR", "UEC", "UUUU", "CCJ", "NXE", "LEU", "DNN", "NNE", "GEV"
     ],
-    "☢️ Energy & Resources": [
-        "CCJ", "URA", "U.UN", "NXE", "DNN", "UEC", "UUUU", "LEU", "BWXT", "OKLO", "SMR",
-        "COPX", "FCX", "SCCO", "HBM", "TECK", "RIO", "BHP", "VALE", 
-        "XOM", "CVX", "SLB", "HAL", "OXY", "KMI", "WMB", "LNG"
+
+    # ---------------------------------------------------------
+    # 6. Energy: Power & Renewables
+    # ---------------------------------------------------------
+    "⚡ Energy: Power & Renewables": [
+        "VST", "CEG", "NRG", "NEE", "DUK", "SO", "AEP", "EXC", "PEG", "PPL", 
+        "SRE", "CNP", "ED", "EIX", "ETR", "LNT", "NI", "WEC", "WTRG", "CMS", 
+        "ES", "XEL", "PCG", "AES", "FLNC", "BE", "ENPH", "SEDG", "RUN", "NXT"
     ],
-    "🚜 Infra & Industry": [
-        "CAT", "DE", "URI", "ETN", "PWR", "EME", "GE", "HON", "MMM", "ITW", 
-        "PH", "CMI", "PCAR", "FAST", "XYL", "VMI", "GNRC"
+
+    # ---------------------------------------------------------
+    # 7. Energy: Oil & Gas
+    # ---------------------------------------------------------
+    "🛢️ Energy: Oil & Gas": [
+        "PR", "XOM", "CVX", "OXY", "EOG", "SLB", "HAL", "BKR", "COP", "DVN", 
+        "VLO", "MPC", "PSX", "PBR", "PBR-A", "BP", "SU", "EC", "EQNR", "YPF", 
+        "TRP", "KMI", "WMB", "ET", "EPD", "CTRA", "AR", "EQT", "SM", "OKE", 
+        "FTI", "DINO", "PBF", "MUR", "AM", "LBRT", "CNQ", "APA", "SHEL", "VZLA", 
+        "MTDR", "CHYM"
     ],
+
+    # ---------------------------------------------------------
+    # 8. BioPharma (Major & Obesity)
+    # ---------------------------------------------------------
+    "💊 BioPharma: Big Pharma & Obesity": [
+        "LLY", "NVO", "VKTX", "PFE", "MRK", "AMGN", "BMY", "ABBV", "JNJ", 
+        "GILD", "AZN", "SNY", "TEVA"
+    ],
+
+    # ---------------------------------------------------------
+    # 9. BioPharma (Biotech & Gene)
+    # ---------------------------------------------------------
+    "🧬 BioPharma: Biotech & Gene": [
+        "CRSP", "BEAM", "ARWR", "SRPT", "VRTX", "ALKS", "INCY", "EXEL", "LEGN", 
+        "RPRX", "HALO", "ADMA", "BBIO", "SMMT", "FOLD", "TVTX", "ROIV", "NTLA", 
+         "APQT", "LQDA", "NUVB", "ERAS", "SNDK", "TAK", "INSM", "BMRN", 
+        "BMNR", "AXSM", "VVV", "INDV", "OCUL", "RNA", "ADPT", "KOD", "ARQT", 
+        "CPRX", "VIR", "BNTX"
+    ],
+
+    # ---------------------------------------------------------
+    # 10. MedTech & Health Services
+    # ---------------------------------------------------------
+    "🏥 MedTech & Health": [
+        "UNH", "CVS", "ABT", "DHR", "TMO", "SYK", "BSX", "EW", "MDT", "DXCM", 
+        "ZTS", "GEHC", "CNC", "DOCS", "ALHC", "NVST", "BRKR", "OGN", "BAX", 
+        "XRAY", "CAH", "BHC", "SHC", "COO", "HIMS", "WRBY", "NEOG", "OSCR", 
+        "ALGN", "RMD", "HCA", "ELV", "CI", "HUM", "MCK", "COR"
+    ],
+
+    # ---------------------------------------------------------
+    # 11. Consumer: Food & Beverage
+    # ---------------------------------------------------------
+    "🍔 Consumer: Food & Bev": [
+        "MICC", "KO", "PEP", "MNST", "CELH", "MCD", "SBUX", "CMG", "CAVA", 
+        "HRL", "KHC", "MDLZ", "CPB", "CAG", "GIS", "TAP", "BUD", "STZ", "MO", 
+        "PM", "BTI"
+    ],
+
+    # ---------------------------------------------------------
+    # 12. Consumer: Retail & E-Commerce
+    # ---------------------------------------------------------
+    "🛒 Consumer: Retail & E-Com": [
+        "AMZN", "WMT", "COST", "TGT", "LOW", "TJX", "ROST", "ETSY", "EBAY", 
+        "CHWY", "CART", "DASH", "UBER", "LYFT", "GRND", "MTCH", "W", "BBY", 
+        "ANF", "AEO", "KSS", "M", "VSCO", "BROS", "YMM", "PDD", "BABA", "JD", 
+        "VIPS", "CPNG"
+    ],
+
+    # ---------------------------------------------------------
+    # 13. Consumer: Apparel & Leisure
+    # ---------------------------------------------------------
+    "👗 Consumer: Apparel & Leisure": [
+        "NKE", "LULU", "DECK", "ONON", "BIRK", "VFC", "LEVI", "CPRI", "UA", 
+        "UAA", "RCL", "CCL", "NCLH", "VIK", "LVS", "MGM", "CZR", "DIS", "NFLX", 
+        "SPOT", "PINS", "SNAP", "TTWO", "EA", "ROKU", "LYV", "IHRT", "CNK", 
+        "GENI", "SBET", "STUB"
+    ],
+
+    # ---------------------------------------------------------
+    # 14. Auto & EV
+    # ---------------------------------------------------------
     "🚗 Auto & EV": [
-        "TSLA", "RIVN", "LCID", "NIO", "XPEV", "LI", "F", "GM", "TM", "HMC",
-        "ON", "STM", "MBLY", "QS", "ALB", "LTHM"
+        "TSLA", "RIVN", "LCID", "LI", "XPEV", "NIO", "ZETA", "PSNY", "F", 
+        "GM", "STLA", "TM", "HMC", "CNH", "GNTX", "APTV", "GT", "LKQ", "CVNA", 
+        "KMX", "ALV", "BWA", "QS", "GTX", "HOG"
     ],
-    "💸 FinTech & Crypto & Real Estate": [
-        "COIN", "MSTR", "HOOD", "PYPL", "SQ", "AFRM", "UPST", "SOFI", "V", "MA",
-        "JPM", "GS", "MS", "BAC", "C", "WFC", "BLK", "BX", "KKR", 
-        "PLD", "AMT", "CCI", "O", "DLR", "EQIX", "PSA", "VICI"
+
+    # ---------------------------------------------------------
+    # 15. Real Estate & REITs
+    # ---------------------------------------------------------
+    "🏘️ Real Estate & REITs": [
+        "MRP", "PLD", "AMT", "CCI", "O", "VICI", "GLPI", "WELL", "VTR", "ARE", 
+        "CUBE", "REXR", "INVH", "AMH", "EQR", "UDR", "IRM", "WY", "Z", "OPEN", 
+        "CSGP", "BEKE", "HR", "APLE", "STWD", "AGNC", "NLY", "RITM", "MPW", 
+        "DBRG", "IRT", "DOC", "COLD", "SBRA", "BRX", "PDI", "COMP", "HST"
     ],
-    "💊 Consumer & Health & Bio": [
-        "LLY", "NVO", "VRTX", "REGN", "AMGN", "GILD", "BIIB", "MRNA", "PFE", "JNJ",
-        "XBI", "LABU", "COST", "WMT", "TGT", "HD", "LOW", "MCD", "SBUX", "CMG",
-        "NKE", "LULU", "ONON", "DECK", "CROX", "DIS", "NFLX"
+
+    # ---------------------------------------------------------
+    # 16. Finance: Banks & Capital Markets
+    # ---------------------------------------------------------
+    "🏦 Finance: Banks & Capital": [
+        "JPM", "BAC", "WFC", "C", "MS", "GS", "SCHW", "BLK", "AXP", "V", "MA", 
+        "BRK-B", "AIG", "MET", "KKR", "BX", "APO", "ARES", "STT", "BK", "USB", 
+        "PNC", "TFC", "COF", "FITB", "RF", "KEY", "CFG", "HBAN", "CADE", "FNB", 
+        "IBKR", "DB", "UBS", "BCS", "LYG", "ITUB", "MFC", "TD", "AFL", "WRB", 
+        "PGR", "EQH", "GNW", "SEI", "GOF", "ARCC", "OBDC", "BGC", "BANC", "EBC", 
+        "MFG", "SMFG", "MUFG", "JEF", "PRMB", "BPRE", "COLB"
+    ],
+
+    # ---------------------------------------------------------
+    # 17. Industrials & Transport
+    # ---------------------------------------------------------
+    "🏗️ Industrials & Transport": [
+        "TIC", "CAT", "ETN", "EMR", "PWR", "URI", "JCI", "IR", "OTIS", "CARR", 
+        "FIX", "GVA", "MLM", "VMC", "MMM", "GE", "HON", "ITW", "PH", "FAST", 
+        "MAS", "BLDR", "CRH", "ESI", "AL", "CPRT", "RHI", "FTV", "FLR", "NVT", 
+        "GTES", "APG", "TTEK", "FLEX", "CLS", "AXTA", "PCAR", "DAL", "UAL", 
+        "AAL", "LUV", "ALK", "CSX", "UNP", "CP", "FDX", "UPS", "ODFL", "KNX", 
+        "RXO", "ZIM", "FRO", "FLY", "QXO"
+    ],
+
+    # ---------------------------------------------------------
+    # 18. Resources & Materials
+    # ---------------------------------------------------------
+    "⛏️ Resources & Materials": [
+        "FCX", "VALE", "RIO", "BHP", "CLF", "NEM", "GOLD", "AEM", "ALB", "AA", 
+        "SCCO", "MP", "CENX", "CDE", "HL", "AG", "EXK", "TGB", "FSM", "SSRM", 
+        "IAG", "SVM", "PAAS", "TECK", "HBM", "GFI", "AU", "NG", "AGI", "ORLA", 
+        "CC", "OLN", "IFF", "BALL", "IP", "GPK", "SUZ", "CE", "EMN", "HUN", 
+        "MOS", "NTR", "HYMC", "VZLA", "AMCR", "DOW", "LIN", "DD", "LYB", "PHYS", 
+        "PSLV", "IE", "NGD"
+    ],
+
+    # ---------------------------------------------------------
+    # 19. Tech: Other / Emerging / Quantum
+    # ---------------------------------------------------------
+    "🔮 Tech: Other & Emerging": [
+        "VISN", "IONQ", "QBTS", "RGTI", "QUBT", "MBLY", "HSAI", "VNET", "FYBR", 
+        "LUMN", "VIAV", "CIEN", "BILI", "TME", "RUM"
     ]
 }
 
@@ -92,8 +245,11 @@ THEMATIC_ETFS = {
     "Bitcoin Strategy (ビットコイン)": "BITO"
 }
 
-# Extend Static List with ETFs
-STATIC_MOMENTUM_WATCHLIST.extend(list(THEMATIC_ETFS.values()))
+# Extend Static List with ETFs & Register to Sector Map
+for name, ticker in THEMATIC_ETFS.items():
+    if ticker not in STATIC_MOMENTUM_WATCHLIST:
+        STATIC_MOMENTUM_WATCHLIST.append(ticker)
+    TICKER_TO_SECTOR[ticker] = name
 
 # --- Functions ---
 
