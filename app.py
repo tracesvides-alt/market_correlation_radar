@@ -1178,49 +1178,43 @@ def calculate_momentum_metrics(tickers):
 def main():
     # st.set_page_config is now called globally at line 15
     
-   # --- Hide Streamlit Style (Sidebar RESTORED Version) ---
+   # --- Hide Streamlit Style (Visibility Override Method) ---
     hide_st_style = """
         <style>
-        /* 1. ヘッダーの背景を透明にする（左上のボタンは見せるため） */
+        /* 1. ヘッダー全体を「見えなく」する（非表示ではなく不可視） */
+        /* これで右上のアイコンも、背景も、何もかも一旦見えなくなります */
         header[data-testid="stHeader"] {
-            background: transparent !important;
-            border-bottom: none !important;
+            visibility: hidden !important;
         }
 
-        /* 2. 【修正】右上の「アクション要素」だけを狙い撃ちで消す */
-        /* stToolbar は消さない（ここにハンバーガーがいる可能性があるため） */
-        [data-testid="stHeaderActionElements"] {
-            display: none !important;
+        /* 2. 【ここが重要】サイドバーのボタンだけを「見える」ように上書きする */
+        /* 親が hidden でも、子が visible なら、その子だけ浮き出て見えます */
+        [data-testid="stSidebarCollapsedControl"] {
+            visibility: visible !important;
+            display: block !important;
         }
         
+        /* 古いバージョンのStreamlit用（念のため記述） */
+        [data-testid="baseButton-header"] {
+            visibility: visible !important;
+            display: block !important;
+        }
+
         /* 3. 上部の虹色の線を消す */
         [data-testid="stDecoration"] {
             display: none !important;
         }
 
-        /* 4. ランニング中のステータス（右上の人型など）を消す */
-        [data-testid="stStatusWidget"] {
-            display: none !important;
-        }
-
-        /* 5. フッター（Streamlitで構築...）を完全に消す */
+        /* 4. フッターを完全に消す */
         footer {
             visibility: hidden !important;
-            height: 0px !important;
+            display: none !important;
         }
         [data-testid="stFooter"] {
             display: none !important;
         }
-        #MainMenu {
-            display: none !important;
-        }
         
-        /* Cloudのロゴ対策 */
-        div[class^='viewerBadge'] {
-            display: none !important;
-        }
-
-        /* 6. コンテンツ位置の調整 */
+        /* 5. 余白調整 */
         .block-container {
             padding-top: 3rem !important;
         }
