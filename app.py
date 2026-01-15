@@ -1257,46 +1257,45 @@ def render_momentum_master():
                 color = "#00FF00" if ret_val > 0 else "#FF4444"
                 bg_color = "rgba(0, 255, 0, 0.1)" if ret_val > 0 else "rgba(255, 0, 0, 0.1)"
                 
-                # Compact CSS
+                # Compact CSS (Ultra Density for Small Screens)
                 card_html = f"""
                 <div style="
                     border: 1px solid #444; 
-                    border-radius: 10px; 
-                    padding: 12px; 
-                    margin-bottom: 8px; 
+                    border-radius: 8px; 
+                    padding: 8px 10px; 
+                    margin-bottom: 4px; 
                     background-color: #0e1117; 
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
                 ">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <div>
-                            <div style="display: flex; align-items: baseline; gap: 8px;">
-                                <span style="font-size: 1.5em; font-weight: 900; color: #ffffff; letter-spacing: 1px;">{ticker}</span>
+                            <div style="display: flex; align-items: baseline; gap: 6px;">
+                                <span style="font-size: 1.3em; font-weight: 900; color: #ffffff; letter-spacing: 0.5px;">{ticker}</span>
                                 <span style="
-                                    font-size: 1.1em; 
+                                    font-size: 1.0em; 
                                     font-weight: bold; 
                                     color: {color}; 
                                     background-color: {bg_color}; 
-                                    padding: 1px 6px; 
+                                    padding: 0px 4px; 
                                     border-radius: 4px;
                                 ">
                                     {ret_val:+.2f}%
                                 </span>
                             </div>
-                            <div style="font-size: 0.8em; color: #aaaaaa; margin-top: 2px;">{name}</div>
-                            <div style="font-size: 0.7em; color: #888888;">{sub}</div>
+                            <div style="font-size: 0.75em; color: #aaaaaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">{name}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 1.0em; color: #eeeeee; font-weight: 600;">${price:.2f}</div>
-                            <div style="font-size: 1.1em; letter-spacing: 2px; margin-top: 2px;">{signal}</div>
+                            <div style="font-size: 0.9em; color: #eeeeee; font-weight: 600;">${price:.2f}</div>
+                            <div style="font-size: 1.0em; margin-top: 0px;">{signal}</div>
                         </div>
                     </div>
                     <div style="
-                        font-size: 0.85em; 
+                        font-size: 0.75em; 
                         color: #cccccc; 
                         border-top: 1px solid #333; 
-                        padding-top: 6px; 
-                        margin-top: 6px; 
-                        line-height: 1.35;
+                        padding-top: 4px; 
+                        margin-top: 4px; 
+                        line-height: 1.25;
                     ">
                         🤖 {comment}
                     </div>
