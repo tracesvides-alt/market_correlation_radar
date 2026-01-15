@@ -791,16 +791,16 @@ def main():
         
         mode = st.radio(
             "Select Mode",
-            ["📊 Correlation Radar", "🚀 Momentum Master"],
+            ["� Momentum Master", "�📊 Correlation Radar"],
             index=0
         )
         st.markdown("---")
 
     # --- Router ---
-    if mode == "📊 Correlation Radar":
-        render_correlation_radar()
-    elif mode == "🚀 Momentum Master":
+    if mode == "� Momentum Master":
         render_momentum_master()
+    elif mode == "� Correlation Radar":
+        render_correlation_radar()
 
 # --- View: Correlation Radar ---
 def render_correlation_radar():
@@ -929,90 +929,118 @@ import random # Add at top if not exists (handling in instruction context)
 # --- AI Comment Logic ---
 def generate_dynamic_comment(ticker, row):
     """
-    Generates a entertaining, randomized comment based on metrics.
+    複数のシグナルを考慮したスマートなコメント生成関数
     """
+    # --- データ準備 ---
+    current_price = row.get('Price', row.get('Close', 0))
     rvol = row.get('RVOL', 0)
     rsi = row.get('RSI', 50)
-    sma_ok = row.get('Above_SMA50', False)
-    ret_3mo = row.get('3mo', 0)
     
+    # Fundamentals
+    short_ratio = row.get('ShortRatio', 0)
+
+    # トレンド判定
+    sma50 = row.get('SMA50', 0)
+    sma200 = row.get('SMA200', 0)
+    
+    # 判定フラグ
+    try:
+        is_bull_trend = sma50 > sma200       # ゴールデンクロス状態
+        is_bear_trend = sma50 < sma200       # デッドクロス状態
+    except:
+        is_bull_trend = False
+        is_bear_trend = False
+    
+    is_high_vol = rvol > 2.0             # 出来高急増
+    is_super_vol = rvol > 5.0            # 出来高爆増
+    is_overbought = rsi > 70             # 買われすぎ
+    is_oversold = rsi < 30               # 売られすぎ
+    
+    # --- 優先度SS: 矛盾・特異点（AI Analysis） ---
+
+    # 1. 【反転兆候】デッドクロス中だが、モメンタムが強すぎる
+    # 下落トレンド(長期) vs 短期急騰(短期) の衝突
+    # 追加: 短期的にGC直前か？など
+    if is_bear_trend and is_high_vol and is_overbought:
+        templates = [
+            f"⚡ {ticker}に異変。デッドクロス中だがこのRSIと出来高は強すぎる。「初動」の可能性も否定できない。",
+            f"🔥 売り方は逃げろ！{ticker}は下落トレンドを力技でねじ伏せようとしている。",
+            f"🤔 {ticker}、ただのリバウンドにしては強すぎる。ショートカバー（踏み上げ）発生中か？"
+        ]
+        return random.choice(templates)
+
+    # 2. 上昇トレンド中の急落（押し目か崩壊か）
+    if is_bull_trend and is_high_vol and is_oversold:
+        templates = [
+            f"🔪 {ticker}が上昇トレンド中に急落。押し目買いチャンスか、それともナイフか？",
+            f"📉 パニック売り発生中。{ticker}のトレンドが本物なら、ここが絶好の拾い場だが...",
+            f"� {ticker}、救急車通過。過熱感は冷めたが、冷めすぎかもしれない。"
+        ]
+        return random.choice(templates)
+
+    # 3. 閑散としたゴールデンクロス（騙し警戒）
+    if is_bull_trend and rvol < 0.8: # 出来高が普段より少ない
+        templates = [
+            f"⚠️ {ticker}がGCしたが、出来高がスカスカだ。誰も気づいていないか、騙しか。",
+            f"🍃 風が吹けば飛びそうな上昇トレンド。{ticker}にはパワー（出来高）が必要だ。",
+        ]
+        return random.choice(templates)
+        
+    # 4. Short Squeeze Potential (High Short Ratio + Price Up + Vol Up)
     ret_1d = row.get('1d', 0)
+    if ret_1d > 3.0 and is_high_vol and short_ratio > 5:
+        templates = [
+            f"🔥 踏み上げ（ショートスクイズ）警報！{ticker}の売り豚が焼かれている。",
+            f"🥓 空売りの買い戻しが燃料だ。{ticker}の急騰は止まらないかも。",
+            f"🎢 {ticker}でマネーゲーム発生中。ボラティリティに注意せよ。"
+        ]
+        return random.choice(templates)
+
+    # --- 優先度S: 強烈な単一イベント ---
+
+    # 出来高爆増（トレンド関係なしに何か起きてる）
+    if is_super_vol:
+        return f"� {ticker}の出来高がバグっている(RVOL {rvol:.1f})。材料が出たか？イナゴタワー建設開始。"
+        
+    # Blue Sky
+    high_52 = row.get('High52', 999999)
+    if current_price >= high_52 * 0.98:
+         return f"🚀 {ticker}は青天井モード突入！上には宇宙しかない。"
+
+    # --- 優先度A: 通常のテクニカル判定 ---
     
-    # Templates
-    # 1. Volume Surge (Priority 1)
-    if rvol > 5.0: # Raise threshold for generic "Something is leaking"
-        templates = [
-            f"🚀 {ticker}の出来高が異常値！何か漏れてるかも？",
-            f"💰 マネーゲーム開始の合図。{ticker}を監視せよ。",
-            f"📢 {ticker}に何かが起きている...イナゴタワー建設予定地か？"
-        ]
-        return random.choice(templates)
+    # Squeeze
+    if row.get('Is_Squeeze', False):
+         return f"🤐 {ticker}は嵐の前の静けさ(Squeeze)。次のビッグムーブに備えよ。"
 
-    # 2. Reversal Chance (Bear Trend but High Vol & Price Jump)
-    # SMA50 NG (Bearish) but Volume Spike (RVOL > 2.0) and Price Up (1d > 2%)
-    if not sma_ok and rvol > 2.0 and ret_1d > 2.0:
-        templates = [
-             f"🔄 おや？{ticker}の流れが変わったかも。下降トレンド中の出来高急増＋陽線。",
-             f"🧗‍♂️ 底打ち反転の初動か？{ticker}がベアトレンドを否定しようとしている。",
-             f"🫣 {ticker}、まだSMA50の下だが...この買い圧力は本物かもしれない。",
-             f"🤔 逃げる場面ではないぞ。{ticker}のセリングクライマックスは終わった可能性がある。"
-        ]
-        return random.choice(templates)
-        
-    # 3. Overbought (RSI > 75)
-    if rsi > 75:
-        templates = [
-            f"🔥 {ticker}はアチアチだ。火傷する前に逃げとけ。",
-            f"⚠️ 欲張りすぎ。そろそろ{ticker}は調整入るぞ。",
-            f"🛑 利確千人力。天井で掴むのは素人だけだ。",
-            f"🎢 ジェットコースターの頂上かも。{ticker}から降りる準備を。"
-        ]
-        return random.choice(templates)
-        
-    # 4. Oversold (RSI < 30)
-    if rsi < 30:
-        templates = [
-            f"🧊 売られすぎ。そろそろ{ticker}のリバウンドあるで。",
-            f"🎣 落ちるナイフ？いや、{ticker}はバーゲンセールかも。",
-            f"💎 誰も見てない今こそ{ticker}を拾うチャンス。"
-        ]
-        return random.choice(templates)
+    # 普通のデッドクロス（出来高もRSIも普通）
+    # 直近でクロスしたか？
+    if row.get('DC_Just_Now', False):
+         return f"💀 {ticker}がデッドクロス...長期的な冬の時代到来か。"
+         
+    if is_bear_trend and not is_high_vol:
+        return f"💀 {ticker}はデッドクロス継続中。トレンドに逆らわず、冬の時代を耐え忍ぶ時。"
+    
+    # 普通のゴールデンクロス（順当な上げ）
+    if row.get('GC_Just_Now', False):
+         return f"🌟 {ticker}がゴールデンクロス達成！長期トレンド転換のファンファーレ。"
 
-    # 5. Dip Buy (Uptrend but cool RSI)
-    # Price > SMA50 (Bullish) but RSI < 45 (Not hot)
-    if sma_ok and rsi < 45:
-        templates = [
-            f"🛒 {ticker}は上昇トレンド中の押し目。絶好の拾い場。",
-            f"📉 健全な調整だ。{ticker}のバーゲンは長くは続かない。",
-            f"🐂 休憩中の{ticker}を拾っておくのが賢い投資家。"
-        ]
-        return random.choice(templates)
+    if is_bull_trend and rsi > 50:
+        return f"🐂 {ticker}は順調な上昇トレンド。素直に乗るのが吉。"
 
-    # 6. Strong Uptrend (SMA OK + Positive Mom + RSI OK)
-    if sma_ok and ret_3mo > 0:
-        templates = [
-            f"🐂 綺麗なチャートだ。{ticker}は素直に買い。",
-            f"📈 逆らう理由がない。トレンドフォローこそ正義。",
-            f"⚡ 機関が動いている。{ticker}の初動に乗り遅れるな。",
-            f"🚀 {ticker}は青天井モード突入か？握力高めていけ。"
-        ]
-        return random.choice(templates)
-        
-    # 7. Bear Trend (Price < SMA50 & Negative Mom)
-    if not sma_ok and ret_3mo < 0:
-        templates = [
-            f"🐻 完全な下降トレンド。{ticker}には触るな。",
-            f"⛈️ 雨降って地固まる...まで{ticker}は様子見が無難。",
-            f"📉 まだ掘るぞ。{ticker}の底はここじゃない。",
-            f"💀 デッドクロス継続中。{ticker}のロングは自殺行為。"
-        ]
-        return random.choice(templates)
-        
-    # 7. Default/Neutral
+    # 単なる買われすぎ
+    if is_overbought:
+        return f"🔥 {ticker}はアチアチ(RSI {rsi:.0f})。火傷する前に利確も検討を。"
+
+    # 単なる売られすぎ
+    if is_oversold:
+        return f"🧊 {ticker}は売られすぎ(RSI {rsi:.0f})。自律反発狙いのスケベ買いチャンス？"
+
+    # --- その他 ---
     templates = [
-        f"👀 {ticker}はまだ様子見。次の動きを待て。",
+        f"👀 {ticker}は様子見。次のアクションを待て。",
         f"😴 出来高が足りない。{ticker}は寝かせておこう。",
-        f"🤔 {ticker}の方向性が定まらない。触るな危険。"
+        f"🤔 {ticker}の方向性が定まらない。"
     ]
     return random.choice(templates)
 
@@ -1160,29 +1188,10 @@ def render_momentum_master():
     top_10['AI Strategy'] = strategies
     top_10['Earnings'] = earnings_dates
     
-    st.markdown(f"### 🏆 Top 10 Strongest Stocks ({period_map[selected_period]})")
+    # --- Mobile View Toggle ---
+    use_mobile_view = st.toggle("📱 Card View Mode", value=True)
     
-    # Legend
-    with st.expander("ℹ️ Signal Icon Legend (アイコンの意味)", expanded=False):
-        st.markdown("""
-        - ⚡ **Volume Surge**: 出来高急増 (RVOL > 2.0)
-        - 🐂 **Bull Mode**: 上昇トレンド (SMA50より上 & 3ヶ月+)。順張り。
-        - 🛒 **Dip Buy**: 押し目買いチャンス (上昇中だがRSI<45で調整中)
-        - 🔥 **Hot**: 買われすぎ (RSI > 70)。天井警戒。
-        - 🐻 **Bear Trend**: 下降トレンド (SMA50より下 & 3ヶ月-)。戻り売り。
-        - 🧊 **Oversold**: 売られすぎ (RSI < 30)。リバウンド狙い。
-        """)
-
-    if selected_period != '1d':
-        st.caption("※長期分析（5d以上）のため、監視リスト（Static Watchlist）内のみでランキングしています。")
-    
-
-    
-    # Styling
-    def highlight_focus(val):
-        return 'background-color: #ffeb3b; color: black; font-weight: bold;' 
-
-    # Show Table
+    # Define Column Config (Reusable)
     column_config = {
         "Ticker": st.column_config.TextColumn("Ticker", width="small", pinned=True),
         "Name": st.column_config.TextColumn("Company", width="medium"),
@@ -1191,7 +1200,7 @@ def render_momentum_master():
         "Signal": st.column_config.TextColumn(
             "Signal", 
             width="medium",
-            help="⚡:出来高 | 🐂:上昇 | 🛒:押し目 | 🔥:加熱 | 🐻:下降 | 🧊:底値"
+            help="🚀:青天井 | ✨:GC | 💀:DC | 🤐:Squeeze | ⚡:出来高 | 🐂:上昇 | 🛒:押し目 | 🔥:加熱 | 🐻:下降 | 🧊:底値"
         ),
         "AI Strategy": st.column_config.TextColumn("🤖 AI Analysis", width="large"),
         "Earnings": st.column_config.TextColumn("Earnings (Next)", width="medium"),
@@ -1202,18 +1211,228 @@ def render_momentum_master():
     }
     
     context_cols = ['Ticker', 'Name', 'Sector', 'Price', 'Signal', 'AI Strategy', 'Earnings', selected_period]
+
+    # Style Helpers (Global in this function)
+    def highlight_focus(val):
+        return 'background-color: #ffeb3b; color: black; font-weight: bold;' 
     
-    st.dataframe(
-        top_10[context_cols].style.applymap(
-            highlight_focus, subset=[selected_period]
-        ).format({
-            selected_period: "{:+.2f}%",
-            'Price': "${:.2f}"
-        }),
-        column_config=column_config,
-        use_container_width=True,
-        hide_index=True
-    )
+    # --- Mobile Card Helper ---
+    def render_mobile_card_view(df, period, title_col='Name', subtitle_col='Sector', limit=5):
+        # st.caption("💡 Card View") 
+
+        # Split Data
+        visible_df = df.head(limit)
+        hidden_df = df.iloc[limit:]
+        
+        def render_rows(target_df):
+            for idx, row in target_df.iterrows():
+                ticker = row['Ticker']
+                ret_val = row.get(period, 0)
+                price = row.get('Price', 0)
+                signal = row.get('Signal', '')
+                comment = row.get('AI Strategy')
+                if not comment:
+                    comment = generate_dynamic_comment(ticker, row)
+                    
+                name = row.get(title_col, '')
+                sub = row.get(subtitle_col, '')
+                
+                color = "#00FF00" if ret_val > 0 else "#FF4444"
+                bg_color = "rgba(0, 255, 0, 0.1)" if ret_val > 0 else "rgba(255, 0, 0, 0.1)"
+                
+                # Compact CSS
+                card_html = f"""
+                <div style="
+                    border: 1px solid #444; 
+                    border-radius: 10px; 
+                    padding: 12px; 
+                    margin-bottom: 8px; 
+                    background-color: #0e1117; 
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                        <div>
+                            <div style="display: flex; align-items: baseline; gap: 8px;">
+                                <span style="font-size: 1.5em; font-weight: 900; color: #ffffff; letter-spacing: 1px;">{ticker}</span>
+                                <span style="
+                                    font-size: 1.1em; 
+                                    font-weight: bold; 
+                                    color: {color}; 
+                                    background-color: {bg_color}; 
+                                    padding: 1px 6px; 
+                                    border-radius: 4px;
+                                ">
+                                    {ret_val:+.2f}%
+                                </span>
+                            </div>
+                            <div style="font-size: 0.8em; color: #aaaaaa; margin-top: 2px;">{name}</div>
+                            <div style="font-size: 0.7em; color: #888888;">{sub}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.0em; color: #eeeeee; font-weight: 600;">${price:.2f}</div>
+                            <div style="font-size: 1.1em; letter-spacing: 2px; margin-top: 2px;">{signal}</div>
+                        </div>
+                    </div>
+                    <div style="
+                        font-size: 0.85em; 
+                        color: #cccccc; 
+                        border-top: 1px solid #333; 
+                        padding-top: 6px; 
+                        margin-top: 6px; 
+                        line-height: 1.35;
+                    ">
+                        🤖 {comment}
+                    </div>
+                </div>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)
+
+        # Render Top N
+        render_rows(visible_df)
+        
+        # Render Remaining in Expander
+        if not hidden_df.empty:
+            remaining_count = len(hidden_df)
+            with st.expander(f"👇 View Remaining {remaining_count} (6-{len(df)})", expanded=False):
+                render_rows(hidden_df)
+
+    
+    # --- Part 1.5: Worst 10 Stocks Calculation (Moved Up) ---
+    # Take Bottom 10 (Worst Performers)
+    bottom_10 = df_sorted.tail(10).sort_values(selected_period, ascending=True).copy()
+    
+    # Enrichment for Bottom 10
+    b_names = []
+    b_sectors = []
+    b_strategies = []
+    b_earnings = []
+    
+    for _, row in bottom_10.iterrows():
+        t = row['Ticker']
+        static_sec = TICKER_TO_SECTOR.get(t)
+        d_name, d_cat = get_ticker_metadata(t)
+        
+        b_names.append(d_name)
+        if static_sec:
+            b_sectors.append(static_sec)
+        elif "🌊" in d_cat:
+            b_sectors.append(d_cat)
+        else:
+            b_sectors.append(f"🌊 {d_cat}")
+        
+        b_strategies.append(generate_dynamic_comment(t, row))
+        b_earnings.append(get_earnings_next(t))
+        
+    bottom_10['Name'] = b_names
+    bottom_10['Sector'] = b_sectors
+    bottom_10['AI Strategy'] = b_strategies
+    bottom_10['Earnings'] = b_earnings
+
+    # --- TABS Layout for Clean Screenshots ---
+    tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top 10 Stocks", "📉 Worst 10 Stocks", "🔥 Hottest Themes", "🥶 Coldest Themes"])
+    
+    # 1. Top 10
+    with tab1:
+        st.markdown(f"### 🏆 Top 10 Strongest Stocks ({period_map[selected_period]})")
+        if use_mobile_view:
+            render_mobile_card_view(top_10, selected_period)
+        else:
+             st.dataframe(
+                top_10[context_cols].style.applymap(
+                    highlight_focus, subset=[selected_period]
+                ).format({
+                    selected_period: "{:+.2f}%",
+                    'Price': "${:.2f}"
+                }),
+                column_config=column_config,
+                use_container_width=True,
+                hide_index=True
+            )
+            
+    # 2. Worst 10
+    with tab2:
+        st.subheader(f"📉 Worst 10 Performers ({period_map[selected_period]})")
+        if use_mobile_view:
+             render_mobile_card_view(bottom_10, selected_period)
+        else:
+            st.dataframe(
+                bottom_10[context_cols].style.applymap(
+                    lambda x: 'background-color: #ffebee; color: black;', subset=[selected_period]
+                ).format({
+                    selected_period: "{:+.2f}%",
+                    'Price': "${:.2f}"
+                }),
+                column_config=column_config,
+                use_container_width=True,
+                hide_index=True
+            )
+
+    # --- ETF Preparation ---
+    # st.header("🌍 Global Theme & Sector Analysis") # In Tabs now
+    
+    etf_ready = False
+    top_etf = pd.DataFrame()
+    bottom_etf = pd.DataFrame()
+    
+    # 1. Prepare ETF list
+    etf_tickers = list(THEMATIC_ETFS.values())
+    if df_metrics is not None and not df_metrics.empty:
+        df_etf = df_metrics[df_metrics['Ticker'].isin(etf_tickers)].copy()
+        if not df_etf.empty and selected_period in df_etf.columns:
+            ticker_to_theme = {v: k for k, v in THEMATIC_ETFS.items()}
+            df_etf['Theme'] = df_etf['Ticker'].map(ticker_to_theme)
+            df_etf_sorted = df_etf.sort_values(selected_period, ascending=False)
+            top_etf = df_etf_sorted.head(10).copy()
+            bottom_etf = df_etf_sorted.tail(10).sort_values(selected_period, ascending=True).copy()
+            etf_ready = True
+
+    # 3. Hottest Themes
+    with tab3:
+        st.subheader(f"🔥 Hottest Themes ({period_map[selected_period]})")
+        if etf_ready:
+            if use_mobile_view:
+                render_mobile_card_view(top_etf, selected_period, title_col='Theme', subtitle_col='Ticker')
+            else:
+                 etf_cols = {
+                    "Theme": st.column_config.TextColumn("Theme (Sector)", width="medium"),
+                    "Ticker": st.column_config.TextColumn("ETF", width="small"),
+                    "Price": st.column_config.NumberColumn("Price", format="$%.2f"),
+                    "Signal": st.column_config.TextColumn("Signal", width="small"),
+                    selected_period: st.column_config.NumberColumn(f"{selected_period.upper()} Return", format="%.2f%%")
+                }
+                 etf_display_cols = ['Theme', 'Ticker', 'Price', 'Signal', selected_period]
+                 st.dataframe(
+                    top_etf[etf_display_cols].style.applymap(
+                        highlight_focus, subset=[selected_period]
+                    ).format({selected_period: "{:+.2f}%", 'Price': "${:.2f}"}),
+                    column_config=etf_cols, use_container_width=True, hide_index=True
+                )
+        else:
+            st.info("No ETF Data")
+
+    # 4. Coldest Themes
+    with tab4:
+        st.subheader(f"🥶 Coldest Themes ({period_map[selected_period]})")
+        if etf_ready:
+            if use_mobile_view:
+                render_mobile_card_view(bottom_etf, selected_period, title_col='Theme', subtitle_col='Ticker')
+            else:
+                 # Reuse etf_cols
+                 etf_display_cols = ['Theme', 'Ticker', 'Price', 'Signal', selected_period]
+                 st.dataframe(
+                    bottom_etf[etf_display_cols].style.applymap(
+                         lambda x: 'background-color: #ffebee; color: black;', subset=[selected_period]
+                    ).format({selected_period: "{:+.2f}%", 'Price': "${:.2f}"}),
+                    # Re-define config here or assume avail
+                    column_config={
+                        "Theme": st.column_config.TextColumn("Theme (Sector)", width="medium"),
+                        "Ticker": st.column_config.TextColumn("ETF", width="small"),
+                        selected_period: st.column_config.NumberColumn(format="%.2f%%")
+                    }, 
+                    use_container_width=True, hide_index=True
+                )
+        else:
+            st.info("No ETF Data")
     
     st.markdown("---")
     
@@ -1251,19 +1470,19 @@ def render_momentum_master():
         st.pyplot(fig, use_container_width=True)
 
     # --- UI: News Section for Top Stocks ---
+    # (News Section Removed for Compactness / or moved down? User didn't ask to remove, but previous context had it. Keeping it is fine.)
+    # Actually, let's keep the user flow: Lists -> Chart -> News -> Heatmap -> Portfolio.
+    
     st.markdown("---")
     st.subheader("📰 Latest News & Analysis")
+    # ... (Keeping existing news logic, assuming it's short enough or collapsible)
     
     # Select box default to top 1
     default_ix = 0 if len(top_tickers) > 0 else None
     
     if top_tickers:
         news_ticker = st.selectbox("Select Ticker to View News:", top_tickers, index=default_ix)
-        
         if news_ticker:
-            # Retrieve company name from the dataframe or metadata
-            # We already have it in top_10['Name'] but need to look it up
-            # Simpler: just get it again or look in df
             selected_row = top_10[top_10['Ticker'] == news_ticker]
             if not selected_row.empty:
                 c_name = selected_row.iloc[0]['Name']
@@ -1272,7 +1491,6 @@ def render_momentum_master():
 
             with st.spinner(f"Fetching news for {news_ticker} ({c_name})..."):
                 news_items = get_ticker_news(news_ticker, company_name=c_name)
-                
                 if news_items:
                     for item in news_items:
                         with st.expander(f"📰 {item['title']} ({item['publisher']})", expanded=True):
@@ -1281,132 +1499,169 @@ def render_momentum_master():
                 else:
                     st.info(f"No specific news found for {news_ticker} in the last 3 days.")
     
-    # --- Part 1.5: Worst 10 Stocks ---
+    # --- Part 3: Sector Heatmap (New) ---
     st.markdown("---")
-    # Take Bottom 10 (Worst Performers)
-    bottom_10 = df_sorted.tail(10).sort_values(selected_period, ascending=True).copy()
-    
-    # Enrichment
-    b_names = []
-    b_sectors = []
-    b_strategies = []
-    b_earnings = []
-    
-    for _, row in bottom_10.iterrows():
-        t = row['Ticker']
-        static_sec = TICKER_TO_SECTOR.get(t)
-        d_name, d_cat = get_ticker_metadata(t)
-        
-        b_names.append(d_name)
-        if static_sec:
-            b_sectors.append(static_sec)
-        elif "🌊" in d_cat:
-            b_sectors.append(d_cat)
-        else:
-            b_sectors.append(f"🌊 {d_cat}")
-        
-        b_strategies.append(generate_dynamic_comment(t, row))
-        b_earnings.append(get_earnings_next(t))
-        
-    bottom_10['Name'] = b_names
-    bottom_10['Sector'] = b_sectors
-    bottom_10['AI Strategy'] = b_strategies
-    bottom_10['Earnings'] = b_earnings
-    
-    st.subheader(f"📉 Worst 10 Performers ({period_map[selected_period]})")
-    
-    st.dataframe(
-        bottom_10[context_cols].style.applymap(
-            lambda x: 'background-color: #ffebee; color: black;', subset=[selected_period]
-        ).format({
-            selected_period: "{:+.2f}%",
-            'Price': "${:.2f}"
-        }),
-        column_config=column_config,
-        use_container_width=True,
-        hide_index=True
-    )
+    st.header(f"🌡️ Sector Heatmap ({period_map[selected_period]})")
+    st.caption("各セクターの「勝ち組 Top 3」と「負け組 Bottom 3」をヒートマップ表示")
 
-    # --- Part 2: Thematic ETF Analysis ---
-    st.markdown("---")
-    st.header("🌍 Global Theme & Sector Analysis")
-    st.markdown("市場の資金がどの「テーマ・セクター」に流れているかをマクロ視点で分析します。")
+    SECTOR_JP_MAP = {
+        "🖥️ AI: Hardware & Cloud Infra": "🖥️ AI: ハードウェア & クラウド",
+        "🧠 AI: Software & SaaS": "🧠 AI: ソフトウェア & SaaS",
+        "💸 Crypto & FinTech": "💸 クリプト & フィンテック",
+        "🌌 Space & Defense": "🌌 宇宙 & 防衛",
+        "☢️ Energy: Nuclear": "☢️ エネルギー: 原子力",
+        "⚡ Energy: Power & Renewables": "⚡ エネルギー: 電力 & 再エネ",
+        "🛢️ Energy: Oil & Gas": "🛢️ エネルギー: 石油 & ガス",
+        "💊 BioPharma: Big Pharma & Obesity": "💊 製薬: 大手 & 肥満薬",
+        "🧬 BioPharma: Biotech & Gene": "🧬 製薬: バイオテク & 遺伝子",
+        "🏥 MedTech & Health": "🏥 メドテック & ヘルスケア",
+        "🍔 Consumer: Food & Bev": "🍔 消費財: 食品 & 飲料",
+        "🛒 Consumer: Retail & E-Com": "🛒 消費財: 小売 & Eコマース",
+        "👗 Consumer: Apparel & Leisure": "👗 消費財: アパレル & レジャー",
+        "🚗 Auto & EV": "🚗 自動車 & EV",
+        "🏘️ Real Estate & REITs": "🏘️ 不動産 & REITs",
+        "🏦 Finance: Banks & Capital": "🏦 金融: 銀行 & 資本市場",
+        "🏗️ Industrials & Transport": "🏗️ 資本財 & 輸送",
+        "⛏️ Resources & Materials": "⛏️ 資源 & 素材",
+        "📱 Tech: Communication": "📱 テック: 通信",
+        "🏠 Homebuilders & Residential": "🏠 住宅 & 建設",
+        "⚛️ Tech: Quantum Computing": "⚛️ テック: 量子コンピュータ"
+    }
+    
+    def render_sector_heatmap(df, period):
+        # 1. Calculate Sector Performance
+        sector_stats = []
+        for sector_name, tickers in SECTOR_DEFINITIONS.items():
+            df_sec = df[df['Ticker'].isin(tickers)]
+            if df_sec.empty: continue
+            
+            # Map to JP Name (Fallback to English if missing)
+            jp_name = SECTOR_JP_MAP.get(sector_name, sector_name)
+            
+            avg_ret = df_sec[period].mean()
+            sector_stats.append({
+                'name': jp_name,
+                'avg': avg_ret,
+                'tickers': tickers,
+                'df': df_sec
+            })
+            
+        # Sort by Avg Return
+        sector_stats.sort(key=lambda x: x['avg'], reverse=True)
+        
+        if not sector_stats: return
 
-    with st.spinner('Analyzing 40+ Thematic ETFs (Offline)...'):
-        # 1. Prepare ETF list
-        etf_tickers = list(THEMATIC_ETFS.values())
+        # Identify Top 3 and Bottom 3
+        top_3 = []
+        bottom_3 = []
+        others = []
         
-        # 2. Filter from Cached Data (Offline)
-        # Verify df_metrics exists (it should be loaded at top of render_momentum_master)
-        if df_metrics is not None and not df_metrics.empty:
-            df_etf = df_metrics[df_metrics['Ticker'].isin(etf_tickers)].copy()
+        if len(sector_stats) >= 6:
+            top_3 = sector_stats[:3]
+            bottom_3 = sector_stats[-3:] 
+            
+            featured = [x['name'] for x in top_3] + [x['name'] for x in bottom_3]
+            others = [x for x in sector_stats if x['name'] not in featured]
         else:
-            df_etf = pd.DataFrame() # Fallback
+            others = sector_stats
+
+        # Construct Display Order
+        for x in top_3: x['type'] = 'TOP'
+        for x in bottom_3: x['type'] = 'BOTTOM'
+        for x in others: x['type'] = 'NORMAL'
         
-        if df_etf is not None and not df_etf.empty:
-            # 3. Process & Sort
-            # Map Ticker back to Theme Name
-            # Build reverse map: Ticker -> Theme Label
-            ticker_to_theme = {v: k for k, v in THEMATIC_ETFS.items()}
+        display_order = top_3 + bottom_3 + others
+        
+        # Container Style
+        html_content = '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">'
+        
+        for sec in display_order:
+            sector_name = sec['name']
+            # Remove emoji for clean text if needed, strictly speaking user asked for JP name.
+            # Keeping Emoji is good. 
+            # The previous code cleaned naming by splitting ':'. We should probably just use the mapped JP name as is?
+            # Or split it if it has emoji prefix?
+            # Let's clean it similarly: Split by ':' if present, but for JP map I included emojis.
+            # Actually, "AI: ハードウェア..." -> "ハードウェア..." might be cleaner?
+            # User request: "ヒートマップのセクター名は日本語も欲しいな" -> "I want Japanese sector names too"
+            # It implies full Japanese translation.
             
-            df_etf['Theme'] = df_etf['Ticker'].map(ticker_to_theme)
+            cleaned_name = sector_name # Use full name for now or split?
+            # The previous logic was: display_name = sector_name.split(":")[-1].strip()
+            # If I mapped keys to "Emoji Name: JP Name", then splitting by ":" works well.
+            # My map keys are full keys (e.g. "🖥️ AI: Hardware & Cloud Infra")
+            # My map values are like "🖥️ AI: ハードウェア & クラウド"
+            # So splitting by ":" gives " ハードウェア & クラウド" -> "ハードウェア & クラウド". Perfect.
             
-            # Sort by selected period
-            if selected_period in df_etf.columns:
-                df_etf_sorted = df_etf.sort_values(selected_period, ascending=False)
-                
-                # Top 10 Themes
-                top_etf = df_etf_sorted.head(10).copy()
-                
-                # Bottom 10 Themes
-                bottom_etf = df_etf_sorted.tail(10).sort_values(selected_period, ascending=True).copy()
-                
-                # Display Top Table
-                st.subheader(f"🔥 Hottest Themes ({period_map[selected_period]})")
-                
-                etf_cols = {
-                    "Theme": st.column_config.TextColumn("Theme (Sector)", width="medium"),
-                    "Ticker": st.column_config.TextColumn("ETF", width="small"),
-                    "Price": st.column_config.NumberColumn("Price", format="$%.2f"),
-                    "Signal": st.column_config.TextColumn("Signal", width="small"),
-                    selected_period: st.column_config.NumberColumn(
-                        f"{selected_period.upper()} Return", 
-                        format="%.2f%%",
-                    )
-                }
-                
-                etf_display_cols = ['Theme', 'Ticker', 'Price', 'Signal', selected_period]
-                
-                st.dataframe(
-                    top_etf[etf_display_cols].style.applymap(
-                        highlight_focus, subset=[selected_period]
-                    ).format({
-                        selected_period: "{:+.2f}%",
-                        'Price': "${:.2f}"
-                    }),
-                    column_config=etf_cols,
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                # Display Bottom Table
-                st.subheader(f"🥶 Coldest Themes ({period_map[selected_period]})")
-                
-                st.dataframe(
-                    bottom_etf[etf_display_cols].style.applymap(
-                        lambda x: 'background-color: #ffebee; color: black;', subset=[selected_period]
-                    ).format({
-                        selected_period: "{:+.2f}%",
-                        'Price': "${:.2f}"
-                    }),
-                    column_config=etf_cols,
-                    use_container_width=True,
-                    hide_index=True
-                )
+            # Special handling if no ':'
+            if ":" in sector_name:
+                cleaned_name = sector_name.split(":")[-1].strip()
             else:
-                st.error("ETF Data missing for selected period.")
-        else:
-            st.warning("Could not fetch ETF data.")
+                # Remove leading emoji for cleaner look or keep it?
+                # Previous code kept emoji in the `sector_name` loop variable but cleaned it for `display_name`.
+                # Actually, wait. Previous code: display_name = sector_name.split(":")[-1].strip() if ":" in sector_name else sector_name
+                # I'll stick to that logic to keep it compact.
+                cleaned_name = sector_name
+                
+            avg = sec['avg']
+            df_sec = sec['df']
+            stype = sec['type']
+            
+            # Header Styling based on Type
+            if stype == 'TOP':
+                header_bg = "linear-gradient(90deg, #b8860b, #daa520)" # Golden
+                header_text = f"🏆 {cleaned_name} (Avg {avg:+.1f}%)"
+                border_color = "#daa520"
+                container_shadow = "0 0 10px rgba(218, 165, 32, 0.3)"
+            elif stype == 'BOTTOM':
+                header_bg = "linear-gradient(90deg, #8b0000, #400000)" # Dark Red
+                header_text = f"📉 {cleaned_name} (Avg {avg:+.1f}%)"
+                border_color = "#8b0000"
+                container_shadow = "0 0 10px rgba(139, 0, 0, 0.3)"
+            else:
+                header_bg = "#262730"
+                header_text = f"{cleaned_name} (Avg {avg:+.1f}%)"
+                border_color = "#333"
+                container_shadow = "none"
+
+            # Prepare Cell Data
+            df_sec_sorted = df_sec.sort_values(period, ascending=False)
+            
+            if len(df_sec_sorted) <= 6:
+                display_tickers = df_sec_sorted
+            else:
+                s_top3 = df_sec_sorted.head(3)
+                s_bottom3 = df_sec_sorted.tail(3).sort_values(period, ascending=False)
+                display_tickers = pd.concat([s_top3, s_bottom3])
+            
+            # Build HTML
+            sector_html = f"""
+            <div style="flex: 1 1 300px; max-width: 400px; background-color: #1a1a1a; border: 2px solid {border_color}; border-radius: 8px; overflow: hidden; box-shadow: {container_shadow};">
+                <div style="background: {header_bg}; padding: 5px 10px; font-size: 0.9em; font-weight: bold; border-bottom: 1px solid #333; text-align: center; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{header_text}</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background-color: #333;">
+            """
+            
+            for _, row in display_tickers.iterrows():
+                t = row['Ticker']
+                ret = row.get(period, 0)
+                
+                if ret > 3.0: bg = "#006400"
+                elif ret > 0.0: bg = "#2E8B57"
+                elif ret > -3.0: bg = "#CD5C5C"
+                else: bg = "#8B0000"
+                
+                cell_html = f"""<div style="background-color: {bg}; padding: 10px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60px;"><div style="font-weight: 900; font-size: 1.0em; color: white; letter-spacing: 0.5px;">{t}</div><div style="font-size: 0.8em; color: rgba(255,255,255,0.9);">{ret:+.1f}%</div></div>"""
+                sector_html += cell_html
+                
+            sector_html += "</div></div>"
+            html_content += sector_html
+            
+        html_content += "</div>"
+        st.markdown(html_content, unsafe_allow_html=True)
+        
+    if df_metrics is not None:
+        render_sector_heatmap(df_metrics, selected_period)
+
 
     
     # --- Part 4: 🤖 AI Portfolio Builder ---

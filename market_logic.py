@@ -19,7 +19,7 @@ SECTOR_DEFINITIONS = {
         "CRWV", "NVDA", "AMD", "SMCI", "VRT", "ANET", "PSTG", "DELL", "HPE", 
         "TSM", "AVGO", "ARM", "MU", "QCOM", "AMAT", "LRCX", "GFS", "STM", 
         "UMC", "ASX", "WDC", "ENTG", "AMKR", "ALAB", "NVTS", "SWKS", "KLAR", 
-        "MCHP", "TXN", "ADI", "ON", "Q", "APLD"
+        "MCHP", "TXN", "ADI", "ON", "Q", "APLD", "FYBR", "LUMN", "VIAV", "CIEN"
     ],
 
     # ---------------------------------------------------------
@@ -68,7 +68,8 @@ SECTOR_DEFINITIONS = {
     "⚡ Energy: Power & Renewables": [
         "VST", "CEG", "NRG", "NEE", "DUK", "SO", "AEP", "EXC", "PEG", "PPL", 
         "SRE", "CNP", "ED", "EIX", "ETR", "LNT", "NI", "WEC", "WTRG", "CMS", 
-        "ES", "XEL", "PCG", "AES", "FLNC", "BE", "ENPH", "SEDG", "RUN", "NXT"
+        "ES", "XEL", "PCG", "AES", "FLNC", "BE", "ENPH", "SEDG", "RUN", "NXT", 
+        "EOSE", "STEM"
     ],
 
     # ---------------------------------------------------------
@@ -127,7 +128,7 @@ SECTOR_DEFINITIONS = {
         "AMZN", "WMT", "COST", "TGT", "LOW", "TJX", "ROST", "ETSY", "EBAY", 
         "CHWY", "CART", "DASH", "UBER", "LYFT", "GRND", "MTCH", "W", "BBY", 
         "ANF", "AEO", "KSS", "M", "VSCO", "BROS", "YMM", "PDD", "BABA", "JD", 
-        "VIPS", "CPNG"
+        "VIPS", "CPNG", "VNET", "BILI", "TME"
     ],
 
     # ---------------------------------------------------------
@@ -137,7 +138,7 @@ SECTOR_DEFINITIONS = {
         "NKE", "LULU", "DECK", "ONON", "BIRK", "VFC", "LEVI", "CPRI", "UA", 
         "UAA", "RCL", "CCL", "NCLH", "VIK", "LVS", "MGM", "CZR", "DIS", "NFLX", 
         "SPOT", "PINS", "SNAP", "TTWO", "EA", "ROKU", "LYV", "IHRT", "CNK", 
-        "GENI", "SBET", "STUB"
+        "GENI", "SBET", "STUB", "VISN", "RUM"
     ],
 
     # ---------------------------------------------------------
@@ -146,7 +147,7 @@ SECTOR_DEFINITIONS = {
     "🚗 Auto & EV": [
         "TSLA", "RIVN", "LCID", "LI", "XPEV", "NIO", "ZETA", "PSNY", "F", 
         "GM", "STLA", "TM", "HMC", "CNH", "GNTX", "APTV", "GT", "LKQ", "CVNA", 
-        "KMX", "ALV", "BWA", "QS", "GTX", "HOG"
+        "KMX", "ALV", "BWA", "QS", "GTX", "HOG", "MBLY", "HSAI"
     ],
 
     # ---------------------------------------------------------
@@ -196,11 +197,18 @@ SECTOR_DEFINITIONS = {
     ],
 
     # ---------------------------------------------------------
-    # 19. Tech: Other / Emerging / Quantum
+    # 20. Housing & Construction
     # ---------------------------------------------------------
-    "🔮 Tech: Other & Emerging": [
-        "VISN", "IONQ", "QBTS", "RGTI", "QUBT", "MBLY", "HSAI", "VNET", "FYBR", 
-        "LUMN", "VIAV", "CIEN", "BILI", "TME", "RUM"
+    "🏠 Homebuilders & Residential": [
+        "DHI", "LEN", "PHM", "TOL", "NVR", "KBH", "TMHC", "MTH", "ARLO", 
+        "BLDR", "MAS", "MHK", "ABNB", "Z", "OPEN", "EXP", "HD", "SHW"
+    ],
+    
+    # ---------------------------------------------------------
+    # 21. Tech: Quantum Computing
+    # ---------------------------------------------------------
+    "⚛️ Tech: Quantum Computing": [
+        "IONQ", "QBTS", "RGTI", "QMCO","ARQQ","LAES","QUBT"
     ]
 }
 
@@ -328,14 +336,44 @@ def calculate_momentum_metrics(tickers):
         return None, None
 
     # Download 1y data to calculate long-term MA and 1y return
+    # Download 1y data to calculate long-term MA and 1y return
+    # Optimized Chunking to avoid Rate Limits
+    chunk_size = 30 # Conservative batch size
+    dfs = []
+    
+    print(f"Fetching data for {len(tickers)} tickers in chunks of {chunk_size}...")
+    
+    for i in range(0, len(tickers), chunk_size):
+        chunk = tickers[i:i + chunk_size]
+        try:
+            # Variable sleep to mimic human behavior slightly and respect limits
+            time.sleep(1.5) 
+            
+            # Re-enabling threads for speed within small batches, but carefully
+            batch_data = yf.download(chunk, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=False)
+            
+            if not batch_data.empty:
+                dfs.append(batch_data)
+                
+        except Exception as e:
+            print(f"Batch fetch failed: {e}")
+            continue
+
+    if not dfs:
+        print("No data fetched.")
+        return None, None
+
+    # Combine all batches
     try:
-        # Sleep slightly to be polite/safe
-        time.sleep(random.uniform(1.0, 3.0))
-        # Fetching for ALL candidates in one go
-        # Group by ticker is safer for multi-ticker
-        df = yf.download(tickers, period="1y", group_by='ticker', auto_adjust=True, progress=False, threads=False)
+        if len(dfs) > 1:
+            # Determine if we need to adjust columns for concatenation
+            # (Usually yf.download(group_by='ticker') returns consistent MultiIndex)
+            df = pd.concat(dfs, axis=1)
+        else:
+            df = dfs[0]
+            
     except Exception as e:
-        print(f"Data Fetch Error: {e}")
+        print(f"Data merge error: {e}")
         return None, None
 
     stats_list = []
@@ -373,15 +411,15 @@ def calculate_momentum_metrics(tickers):
                     continue
 
             # --- 2. Calculations ---
+            metrics = {}
+            metrics['Ticker'] = t
+            metrics['Price'] = current_price
             
             # Returns
             def get_ret(days):
                 if len(t_data) < days: return 0.0
                 return (current_price - t_data['Close'].iloc[-days]) / t_data['Close'].iloc[-days] * 100
 
-            metrics = {}
-            metrics['Ticker'] = t
-            metrics['Price'] = current_price
             metrics['1d'] = get_ret(2)
             metrics['5d'] = get_ret(5)
             metrics['1mo'] = get_ret(21)
@@ -404,21 +442,73 @@ def calculate_momentum_metrics(tickers):
             # RVOL
             if len(t_data) > 21:
                 avg_vol_20 = t_data['Volume'].iloc[-21:-1].mean()
-                if pd.isna(avg_vol_20) or avg_vol_20 == 0:
-                    rvol = 0
-                else:
-                    rvol = current_vol / avg_vol_20
+                rvol = (current_vol / avg_vol_20) if (not pd.isna(avg_vol_20) and avg_vol_20 != 0) else 0
             else:
                 rvol = 0
             metrics['RVOL'] = rvol
             
-            # Technicals
-            if len(t_data) >= 50:
-                sma50 = t_data['Close'].rolling(window=50).mean().iloc[-1]
-                metrics['Above_SMA50'] = current_price > sma50
-            else:
-                metrics['Above_SMA50'] = False
+            # --- Advanced Technicals ---
             
+            # 1. Moving Averages & Crosses
+            sma50 = t_data['Close'].rolling(window=50).mean()
+            sma200 = t_data['Close'].rolling(window=200).mean()
+            
+            metrics['SMA50'] = sma50.iloc[-1] if len(t_data) >= 50 else 0
+            metrics['SMA200'] = sma200.iloc[-1] if len(t_data) >= 200 else 0
+            metrics['Above_SMA50'] = metrics['Price'] > metrics['SMA50']
+            
+            # Golden Cross / Death Cross Checks (Last 5 days)
+            metrics['GC_Just_Now'] = False
+            metrics['DC_Just_Now'] = False
+            
+            if len(t_data) >= 200:
+                cross_window = 5
+                # Check if 50MA crossed 200MA in the last few days
+                # Iterate last few days (index -5 to -1)
+                for i in range(2, cross_window + 2):
+                    if (len(sma50) > i) and (len(sma200) > i):
+                        was_above = sma50.iloc[-i] > sma200.iloc[-i]
+                        is_above = sma50.iloc[-i+1] > sma200.iloc[-i+1]
+                        
+                        if not was_above and is_above:
+                            metrics['GC_Just_Now'] = True
+                        if was_above and not is_above:
+                            metrics['DC_Just_Now'] = True
+
+            # 2. Bollinger Bands (20, 2)
+            if len(t_data) >= 20:
+                sma20 = t_data['Close'].rolling(window=20).mean()
+                std20 = t_data['Close'].rolling(window=20).std()
+                bb_upper = sma20 + 2 * std20
+                bb_lower = sma20 - 2 * std20
+                bb_current_upper = bb_upper.iloc[-1]
+                bb_current_lower = bb_lower.iloc[-1]
+                
+                # Check for div by zero
+                if pd.isna(sma20.iloc[-1]) or sma20.iloc[-1] == 0:
+                     bb_width = 1.0
+                else:
+                     bb_width = (bb_current_upper - bb_current_lower) / sma20.iloc[-1]
+                
+                metrics['BB_Upper'] = bb_current_upper
+                metrics['BB_Lower'] = bb_current_lower
+                metrics['BB_Width'] = bb_width
+                
+                # Squeeze: Current width < 0.8 * Average Width(20)
+                bb_width_series = (bb_upper - bb_lower) / sma20
+                avg_width_20 = bb_width_series.rolling(window=20).mean().iloc[-1]
+                metrics['Is_Squeeze'] = metrics['BB_Width'] < (avg_width_20 * 0.8) if not pd.isna(avg_width_20) else False
+            else:
+                metrics['BB_Upper'] = 999999
+                metrics['BB_Lower'] = 0
+                metrics['BB_Width'] = 1.0
+                metrics['Is_Squeeze'] = False
+
+            # 3. 52-Week High/Low
+            metrics['High52'] = t_data['Close'].max()
+            metrics['Low52'] = t_data['Close'].min()
+
+            # RSI
             rsi_series = calculate_rsi(t_data['Close'], 14)
             metrics['RSI'] = rsi_series.iloc[-1] if not rsi_series.empty else 50
             
@@ -435,6 +525,14 @@ def calculate_momentum_metrics(tickers):
 
             if metrics['RSI'] > 70: signals.append('🔥')
             if metrics['RSI'] < 30: signals.append('🧊')
+            
+            # New Signals
+            if metrics['GC_Just_Now']: signals.append('✨')
+            if metrics['DC_Just_Now']: signals.append('💀')
+            if metrics['Is_Squeeze']: signals.append('🤐')
+            # Check price vs High52 for New Highs (approaching high)
+            if metrics['Price'] >= metrics['High52'] * 0.98: signals.append('🚀')
+
             metrics['Signal'] = "".join(signals)
             
             stats_list.append(metrics)
@@ -446,22 +544,56 @@ def calculate_momentum_metrics(tickers):
         except Exception as e:
             # print(f"Error calc {t}: {e}")
             continue
+
+    # --- Fetch Fundamentals (ShortRatio) for valid tickers ---
+    if stats_list:
+        valid_tickers = [m['Ticker'] for m in stats_list]
+        
+        def get_fund(tick):
+            try:
+                inf = yf.Ticker(tick).info
+                return (tick, inf.get('shortRatio', 0))
+            except:
+                return (tick, 0)
+        
+        # Limit max workers to avoid overload
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+             results = executor.map(get_fund, valid_tickers)
+        
+        fund_map = {r[0]: r[1] for r in results}
+        
+        for m in stats_list:
+            m['ShortRatio'] = fund_map.get(m['Ticker'], 0)
             
     if not stats_list:
         return None, None
         
     df_metrics = pd.DataFrame(stats_list)
-    cols = ['Ticker', 'Signal', 'Price', '1d', '5d', '1mo', '3mo', '6mo', 'YTD', '1y', 'RVOL', 'RSI']
+    # Ensure all new columns are present
+    cols = [
+        'Ticker', 'Signal', 'Price', '1d', '5d', '1mo', '3mo', '6mo', 'YTD', '1y', 
+        'RVOL', 'RSI', 'ShortRatio', 
+        'High52', 'Low52', 'SMA50', 'SMA200', 'BB_Upper', 'BB_Lower', 'Is_Squeeze', 'BB_Width',
+        'GC_Just_Now', 'DC_Just_Now', 'Above_SMA50'
+    ]
     
-    # Allow for flexible columns if something missing
-    valid_cols = [c for c in cols if c in df_metrics.columns]
-    df_metrics = df_metrics[valid_cols]
+    # Filter to only existing columns (safeguard) but we just added them to dict so they should exist
+    # If some failed to calc (e.g. key error), we rely on pandas to fill NaN
     
-    # Just in case extra cols are needed for heatmap (Above_SMA50 etc) - no, existing code uses these via merge logic or re-calc?
-    # Actually app.py uses df_metrics directly.
-    # Note: `Above_SMA50` was used in `app.py` heatmap logic? 
-    # Let's check app.py. The user code in prompt shows `cols = ['Ticker', ...]` filtering out others. 
-    # If app.py needs `Above_SMA50` for sorting/filtering later, we might need to include it.
-    # But sticking to user request for now.
+    # We want these specific columns order if possible, but keep others if we missed any
+    existing_cols = df_metrics.columns.tolist()
+    final_cols = []
+    for c in cols:
+        if c in existing_cols:
+            final_cols.append(c)
+        else:
+             # If missing in DF (shouldn't happen if we added to metrics), ignore or add NaN?
+             # Better to let simple assignment work
+             pass
+    
+    # Add any other columns we might have missed in `cols` list but are in `df_metrics` (like history or debugs)?
+    # Nah, we want a clean DF.
+    
+    df_metrics = df_metrics[final_cols]
     
     return df_metrics, history_dict
