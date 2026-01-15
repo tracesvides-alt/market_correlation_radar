@@ -13,6 +13,8 @@ import re
 import pickle
 import os
 import market_logic
+import importlib
+importlib.reload(market_logic)
 from market_logic import SECTOR_DEFINITIONS, TICKER_TO_SECTOR, STATIC_MOMENTUM_WATCHLIST, THEMATIC_ETFS
 
 # Page Config (Must be first Streamlit command)
@@ -1210,7 +1212,22 @@ def render_momentum_master():
         )
     }
     
-    context_cols = ['Ticker', 'Name', 'Sector', 'Price', 'Signal', 'AI Strategy', 'Earnings', selected_period]
+    context_cols = ['Ticker', 'Name', 'Sector', selected_period, 'Price', 'Signal', 'AI Strategy', 'Earnings']
+
+    # Signal Legend
+    with st.expander("ℹ️ Signal Legend (シグナルの意味)", expanded=False):
+        st.markdown("""
+        - 🚀 **青天井 (Blue Sky)**: 現在価格が52週高値付近 (High52 * 0.98以上)。新高値ブレイクの可能性。
+        - ✨ **ゴールデンクロス (GC)**: 過去数日以内にSMA50がSMA200を上抜け。長期上昇トレンドの示唆。
+        - 💀 **デッドクロス (DC)**: 過去数日以内にSMA50がSMA200を下抜け。長期下降トレンドの示唆。
+        - 🤐 **スクイーズ (Squeeze)**: ボリンジャーバンドが収縮中。大きな価格変動の前触れ。
+        - ⚡ **高出来高 (High Vol)**: 相対出来高(RVOL)が2.0倍以上。市場の注目度が高い。
+        - 🐂 **上昇トレンド (Bull)**: 価格がSMA50より上 & 3ヶ月リターンがプラス。
+        - 🐻 **下降トレンド (Bear)**: 価格がSMA50より下 & 3ヶ月リターンがマイナス。
+        - 🔥 **加熱 (Overbought)**: RSIが70以上。買われすぎ警告。
+        - 🧊 **底値 (Oversold)**: RSIが30以下。売られすぎ（反発の可能性）。
+        - 🛒 **押し目 (Dip Buy)**: 上昇トレンド中だが、短期的にはRSI < 45で調整中。押し目買いの好機か。
+        """)
 
     # Style Helpers (Global in this function)
     def highlight_focus(val):
